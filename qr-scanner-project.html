@@ -6,7 +6,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob:">
   <title>Scanner QR Code</title>
-  <script src="https://unpkg.com/html5-qrcode@2.3.9/minified/html5-qrcode.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" crossorigin="anonymous"></script>
+  <!-- Alternative CDN si le premier ne fonctionne pas -->
+  <script>
+    if (typeof Html5QrcodeScanner === 'undefined') {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js';
+      script.crossOrigin = 'anonymous';
+      document.head.appendChild(script);
+    }
+  </script>
   <style>
     * {
       margin: 0;
@@ -140,6 +149,10 @@
     <button class="btn" id="startBtn" onclick="startScanner()" style="display: none;">
       Démarrer le scanner
     </button>
+    
+    <button class="btn" onclick="runDiagnostics(); console.log('Diagnostic lancé - voir la console (F12)')" style="background: #6c757d; margin-top: 10px;">
+      🔍 Diagnostic
+    </button>
   </div>
 
   <script>
@@ -195,26 +208,57 @@
         return;
       }
 
+      // Vérifier que la bibliothèque est chargée
+      if (typeof Html5QrcodeScanner === 'undefined') {
+        updateStatus('❌ Erreur: Bibliothèque QR scanner non chargée. Rechargez la page.', 'error');
+        return;
+      }
+
       updateStatus('🔄 Démarrage de la caméra...');
       
-      const config = {
-        fps: 10,
-        qrbox: { width: 250, height: 250 },
-        aspectRatio: 1.0,
-        supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
-      };
+      // Vérifier si l'API getUserMedia est supportée
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        updateStatus('❌ Votre navigateur ne supporte pas l\'accès à la caméra', 'error');
+        return;
+      }
 
-      html5QrcodeScanner = new Html5QrcodeScanner(
-        "reader",
-        config,
-        false
-      );
+      // Demander les permissions de caméra
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then(function(stream) {
+          // Permissions accordées, démarrer le scanner
+          const config = {
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0
+          };
 
-      html5QrcodeScanner.render(onScanSuccess, onScanError);
-      
-      isScanning = true;
-      updateStatus('📱 Caméra active - Pointez vers un QR code');
-      document.getElementById('startBtn').style.display = 'none';
+          html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader",
+            config,
+            false
+          );
+
+          html5QrcodeScanner.render(onScanSuccess, onScanError);
+          
+          isScanning = true;
+          updateStatus('📱 Caméra active - Pointez vers un QR code');
+          document.getElementById('startBtn').style.display = 'none';
+        })
+        .catch(function(error) {
+          console.error('Erreur caméra:', error);
+          let errorMessage = '❌ Erreur d\'accès à la caméra';
+          
+          if (error.name === 'NotAllowedError') {
+            errorMessage = '❌ Permission caméra refusée. Cliquez sur l\'icône caméra dans la barre d\'adresse.';
+          } else if (error.name === 'NotFoundError') {
+            errorMessage = '❌ Aucune caméra trouvée sur cet appareil.';
+          } else if (error.name === 'NotSupportedError') {
+            errorMessage = '❌ Votre navigateur ne supporte pas l\'accès à la caméra.';
+          }
+          
+          updateStatus(errorMessage, 'error');
+          document.getElementById('startBtn').style.display = 'block';
+        });
     }
 
     function resetScanner() {
@@ -225,8 +269,32 @@
       isScanning = false;
     }
 
+    // Fonction de diagnostic
+    function runDiagnostics() {
+      console.log('=== Diagnostic Scanner QR ===');
+      console.log('URL:', window.location.href);
+      console.log('Protocole:', window.location.protocol);
+      console.log('HTTPS:', window.location.protocol === 'https:');
+      console.log('User Agent:', navigator.userAgent);
+      console.log('MediaDevices supporté:', !!navigator.mediaDevices);
+      console.log('getUserMedia supporté:', !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia));
+      
+      // Tester les permissions de caméra
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({ video: true })
+          .then(function(stream) {
+            console.log('✅ Permissions caméra accordées');
+            stream.getTracks().forEach(track => track.stop());
+          })
+          .catch(function(error) {
+            console.log('❌ Erreur permissions caméra:', error.name, error.message);
+          });
+      }
+    }
+
     // Initialisation
     window.addEventListener('load', function() {
+      runDiagnostics();
       if (checkHTTPS()) {
         updateStatus('Prêt à scanner');
         document.getElementById('startBtn').style.display = 'block';
