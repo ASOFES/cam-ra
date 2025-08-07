@@ -6,13 +6,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob:">
   <title>Scanner QR Code</title>
-  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js" crossorigin="anonymous"></script>
   <!-- Alternative CDN si le premier ne fonctionne pas -->
   <script>
     if (typeof Html5QrcodeScanner === 'undefined') {
       const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js';
+      script.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
       script.crossOrigin = 'anonymous';
+      script.onerror = function() {
+        // Troisième CDN de secours
+        const script2 = document.createElement('script');
+        script2.src = 'https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js';
+        script2.crossOrigin = 'anonymous';
+        document.head.appendChild(script2);
+      };
       document.head.appendChild(script);
     }
   </script>
@@ -294,11 +301,30 @@
 
     // Initialisation
     window.addEventListener('load', function() {
-      runDiagnostics();
-      if (checkHTTPS()) {
-        updateStatus('Prêt à scanner');
-        document.getElementById('startBtn').style.display = 'block';
+      // Attendre que la bibliothèque soit chargée
+      let attempts = 0;
+      const maxAttempts = 20; // 10 secondes maximum
+      
+      function checkLibrary() {
+        attempts++;
+        if (typeof Html5QrcodeScanner !== 'undefined') {
+          console.log('✅ Bibliothèque QR scanner chargée avec succès');
+          runDiagnostics();
+          if (checkHTTPS()) {
+            updateStatus('Prêt à scanner');
+            document.getElementById('startBtn').style.display = 'block';
+          }
+        } else if (attempts < maxAttempts) {
+          console.log(`🔄 Tentative ${attempts}/${maxAttempts} - Attente de la bibliothèque...`);
+          // Réessayer après 500ms si la bibliothèque n'est pas encore chargée
+          setTimeout(checkLibrary, 500);
+        } else {
+          console.error('❌ Impossible de charger la bibliothèque QR scanner après plusieurs tentatives');
+          updateStatus('❌ Erreur: Impossible de charger la bibliothèque QR scanner. Vérifiez votre connexion internet.', 'error');
+        }
       }
+      
+      checkLibrary();
     });
 
     // Gestion des erreurs de caméra
