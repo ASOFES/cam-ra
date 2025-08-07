@@ -1,21 +1,26 @@
-# Scanner QR Code - Projet Web
+# Scanner QR Code - Système d'Authentification
 
-Un scanner de QR codes moderne et responsive qui fonctionne sur mobile avec la caméra du téléphone.
+Un scanner de QR codes moderne et responsive avec authentification intégrée, connecté à votre backend Azure pour la gestion des employés et des feuilles de temps.
 
 ## 🚀 Fonctionnalités
 
 - ✅ Scanner de QR codes en temps réel
+- 🔐 Authentification sécurisée avec votre backend Azure
+- 👤 Gestion des sessions utilisateur
 - 📱 Interface responsive optimisée pour mobile
 - 🔒 Vérification automatique HTTPS
 - 🎨 Interface moderne et intuitive
 - 🔄 Possibilité de scanner plusieurs QR codes
 - ⚡ Performance optimisée
+- 📊 Intégration avec les API de feuilles de temps
 
 ## 📋 Prérequis
 
 - Serveur web avec support HTTPS
 - Navigateur moderne avec support WebRTC
 - Permissions caméra accordées
+- Compte utilisateur dans votre système Azure
+- Accès à l'API `https://timesheetapp.azurewebsites.net/api`
 
 ## 🌐 Déploiement HTTPS
 
@@ -139,10 +144,28 @@ npx http-server
 
 ```
 qr-scanner/
-├── qr-scanner-project.html  # Application principale
+├── login.html              # Page de connexion
+├── qr-scanner-project.html # Scanner QR protégé
+├── auth.js                 # Gestion de l'authentification
+├── session.js              # Gestion des sessions
+├── index.html              # Page d'accueil
 ├── README.md               # Documentation
 └── .gitignore             # Fichiers à ignorer
 ```
+
+## 🔐 Authentification
+
+### API Endpoints utilisés :
+- **POST** `/api/Auth/login` - Connexion utilisateur
+- **GET** `/api/Auth/users/{userId}` - Informations utilisateur
+- **POST** `/api/Timesheet` - Créer une feuille de temps
+- **GET** `/api/Timesheet/Resume/UserId/{userId}/scope/{scope}` - Feuilles de temps utilisateur
+
+### Gestion des sessions :
+- ✅ **Sessions sécurisées** avec expiration automatique (24h)
+- 🔄 **Rafraîchissement automatique** des tokens
+- 🚪 **Déconnexion automatique** si session expirée
+- 📱 **Support mobile** complet
 
 ## 🤝 Contribution
 
