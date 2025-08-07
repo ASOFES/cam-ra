@@ -4,48 +4,241 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob:">
   <title>Scanner QR Code</title>
   <script src="https://unpkg.com/html5-qrcode@2.3.9/minified/html5-qrcode.min.js"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f4f4;
+    * {
       margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
       padding: 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+      max-width: 500px;
+      width: 100%;
       text-align: center;
     }
-    h2 {
+
+    h1 {
       color: #333;
+      margin-bottom: 20px;
+      font-size: 24px;
+      font-weight: 600;
     }
+
+    .status {
+      background: #f8f9fa;
+      border-radius: 10px;
+      padding: 15px;
+      margin: 20px 0;
+      border-left: 4px solid #007bff;
+    }
+
     #reader {
       width: 100%;
       max-width: 400px;
       margin: 20px auto;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
     }
+
     #result {
       margin-top: 20px;
-      font-size: 18px;
-      color: green;
+      padding: 15px;
+      background: #e8f5e8;
+      border-radius: 10px;
+      border: 1px solid #28a745;
+    }
+
+    .result-text {
+      font-size: 16px;
+      color: #155724;
+      word-break: break-all;
+    }
+
+    .btn {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 10px;
+      transition: all 0.3s ease;
+    }
+
+    .btn:hover {
+      background: #0056b3;
+      transform: translateY(-2px);
+    }
+
+    .btn:disabled {
+      background: #6c757d;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    @media (max-width: 480px) {
+      .container {
+        padding: 20px;
+        margin: 10px;
+      }
+      
+      h1 {
+        font-size: 20px;
+      }
     }
   </style>
 </head>
 <body>
-  <h2>📷 Scanner un QR Code</h2>
-  <div id="reader"></div>
-  <div id="result">Résultat : <span id="output">aucun</span></div>
+  <div class="container">
+    <h1>📷 Scanner QR Code</h1>
+    
+    <div class="status" id="status">
+      <strong>État :</strong> <span id="statusText">Initialisation...</span>
+    </div>
+
+    <div id="reader"></div>
+    
+    <div id="result" style="display: none;">
+      <div class="result-text">
+        <strong>Résultat :</strong> <span id="output"></span>
+      </div>
+      <button class="btn" onclick="resetScanner()">Scanner un autre QR code</button>
+    </div>
+
+    <button class="btn" id="startBtn" onclick="startScanner()" style="display: none;">
+      Démarrer le scanner
+    </button>
+  </div>
 
   <script>
-    function onScanSuccess(decodedText, decodedResult) {
-      document.getElementById('output').textContent = decodedText;
-      html5QrcodeScanner.clear(); // Arrête la caméra après une lecture réussie
+    let html5QrcodeScanner = null;
+    let isScanning = false;
+
+    // Vérifier si on est en HTTPS
+    function checkHTTPS() {
+      if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+        document.getElementById('statusText').textContent = '⚠️ HTTPS requis pour la caméra';
+        document.getElementById('status').classList.add('error');
+        return false;
+      }
+      return true;
     }
 
-    const html5QrcodeScanner = new Html5QrcodeScanner(
-      "reader",
-      { fps: 10, qrbox: 250 },
-      false
-    );
-    html5QrcodeScanner.render(onScanSuccess);
+    function updateStatus(message, type = 'info') {
+      const statusEl = document.getElementById('status');
+      const statusTextEl = document.getElementById('statusText');
+      
+      statusTextEl.textContent = message;
+      statusEl.className = 'status';
+      
+      if (type === 'error') {
+        statusEl.classList.add('error');
+      } else if (type === 'success') {
+        statusEl.classList.add('success');
+      }
+    }
+
+    function onScanSuccess(decodedText, decodedResult) {
+      if (!isScanning) return;
+      
+      isScanning = false;
+      document.getElementById('output').textContent = decodedText;
+      document.getElementById('result').style.display = 'block';
+      
+      updateStatus('✅ QR code détecté !', 'success');
+      
+      // Arrêter la caméra
+      if (html5QrcodeScanner) {
+        html5QrcodeScanner.clear();
+      }
+    }
+
+    function onScanError(error) {
+      // Erreurs normales pendant le scan, pas besoin d'afficher
+      console.log('Scan error:', error);
+    }
+
+    function startScanner() {
+      if (!checkHTTPS()) {
+        return;
+      }
+
+      updateStatus('🔄 Démarrage de la caméra...');
+      
+      const config = {
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0,
+        supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
+      };
+
+      html5QrcodeScanner = new Html5QrcodeScanner(
+        "reader",
+        config,
+        false
+      );
+
+      html5QrcodeScanner.render(onScanSuccess, onScanError);
+      
+      isScanning = true;
+      updateStatus('📱 Caméra active - Pointez vers un QR code');
+      document.getElementById('startBtn').style.display = 'none';
+    }
+
+    function resetScanner() {
+      document.getElementById('result').style.display = 'none';
+      document.getElementById('output').textContent = '';
+      document.getElementById('startBtn').style.display = 'block';
+      updateStatus('Prêt à scanner');
+      isScanning = false;
+    }
+
+    // Initialisation
+    window.addEventListener('load', function() {
+      if (checkHTTPS()) {
+        updateStatus('Prêt à scanner');
+        document.getElementById('startBtn').style.display = 'block';
+      }
+    });
+
+    // Gestion des erreurs de caméra
+    window.addEventListener('error', function(e) {
+      if (e.message.includes('camera') || e.message.includes('permission')) {
+        updateStatus('❌ Erreur d\'accès à la caméra. Vérifiez les permissions.', 'error');
+      }
+    });
   </script>
 </body>
 </html>
