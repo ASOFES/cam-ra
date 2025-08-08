@@ -1,0 +1,1832 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - Pointage QR</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      color: #333;
+      overflow-x: hidden;
+    }
+
+    .header {
+      background: rgba(255, 255, 255, 0.95);
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .user-avatar {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+    }
+
+    .user-details h3 {
+      font-size: 16px;
+      color: #2d3748;
+      margin-bottom: 2px;
+    }
+
+    .user-details p {
+      font-size: 12px;
+      color: #718096;
+    }
+
+    .logout-btn {
+      background: rgba(220, 38, 38, 0.1);
+      color: #dc2626;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .logout-btn:hover {
+      background: rgba(220, 38, 38, 0.2);
+    }
+
+    .container {
+      max-width: 100%;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .welcome-card {
+      background: rgba(255, 255, 255, 0.95);
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 25px;
+      margin-bottom: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+
+    .welcome-card h2 {
+      color: #2d3748;
+      font-size: 24px;
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+
+    .welcome-card p {
+      color: #718096;
+      font-size: 16px;
+      margin-bottom: 20px;
+    }
+
+    .time-display {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 15px;
+      border-radius: 15px;
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 20px;
+    }
+
+    .tabs {
+      display: flex;
+      background: rgba(255, 255, 255, 0.95);
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+      border-radius: 15px;
+      padding: 5px;
+      margin-bottom: 20px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    }
+
+    .tab {
+      flex: 1;
+      padding: 15px 10px;
+      text-align: center;
+      cursor: pointer;
+      border-radius: 10px;
+      transition: all 0.3s ease;
+      font-weight: 600;
+      font-size: 14px;
+      color: #718096;
+    }
+
+    .tab.active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      box-shadow: 0 3px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .tab-content {
+      display: none;
+      background: rgba(255, 255, 255, 0.95);
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 25px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+
+    .tab-content.active {
+      display: block;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .punch-card {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+      padding: 30px;
+      border-radius: 20px;
+      text-align: center;
+      margin-bottom: 20px;
+      box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
+    }
+
+    .punch-card h3 {
+      font-size: 20px;
+      margin-bottom: 10px;
+    }
+
+    .punch-btn {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      padding: 15px 30px;
+      border-radius: 25px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin: 10px;
+    }
+
+    .punch-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: translateY(-2px);
+    }
+
+    .punch-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .status-indicator {
+      display: inline-block;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 600;
+      margin: 10px 0;
+    }
+
+    .status-in {
+      background: rgba(16, 185, 129, 0.2);
+      color: #065f46;
+    }
+
+    .status-out {
+      background: rgba(239, 68, 68, 0.2);
+      color: #991b1b;
+    }
+
+    .history-item {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 12px;
+      margin-bottom: 10px;
+      border-left: 4px solid #667eea;
+    }
+
+    .history-date {
+      font-weight: 600;
+      color: #2d3748;
+      margin-bottom: 5px;
+    }
+
+    .history-time {
+      color: #718096;
+      font-size: 14px;
+    }
+
+    .history-type {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 5px;
+    }
+
+    .type-in {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .type-out {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .profile-section {
+      margin-bottom: 20px;
+    }
+
+    .profile-section h3 {
+      color: #2d3748;
+      margin-bottom: 15px;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .profile-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .profile-label {
+      font-weight: 600;
+      color: #4a5568;
+    }
+
+    .profile-value {
+      color: #2d3748;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 15px;
+      text-align: center;
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .stat-number {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      opacity: 0.9;
+    }
+
+    .btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 25px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-block;
+      margin: 5px;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-warning {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    }
+
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 20px;
+      color: #667eea;
+    }
+
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid #e2e8f0;
+      border-top: 2px solid #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Modal Scanner QR */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .modal-content {
+      background: rgba(255, 255, 255, 0.95);
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      width: 90%;
+      max-width: 500px;
+      max-height: 80vh;
+      overflow: hidden;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+      animation: slideInUp 0.3s ease-out;
+    }
+
+    @keyframes slideInUp {
+      from {
+        opacity: 0;
+        transform: translateY(50px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .modal-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h3 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .close-btn {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      border: none;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+    }
+
+    .close-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: scale(1.1);
+    }
+
+    .modal-body {
+      padding: 30px;
+      text-align: center;
+    }
+
+    .qr-instructions {
+      margin-top: 20px;
+      color: #718096;
+      font-size: 14px;
+    }
+
+    .qr-instructions p {
+      margin: 8px 0;
+    }
+
+    #qr-reader {
+      border: 2px solid #e2e8f0;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 15px;
+      }
+      
+      .welcome-card {
+        padding: 20px;
+      }
+      
+      .welcome-card h2 {
+        font-size: 20px;
+      }
+      
+      .tabs {
+        margin-bottom: 15px;
+      }
+      
+      .tab {
+        padding: 12px 8px;
+        font-size: 13px;
+      }
+      
+      .tab-content {
+        padding: 20px;
+      }
+      
+      .punch-card {
+        padding: 25px;
+      }
+      
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="user-info">
+      <div class="user-avatar" id="userAvatar">👤</div>
+      <div class="user-details">
+        <h3 id="userName">Chargement...</h3>
+        <p id="userRole">Employé</p>
+      </div>
+    </div>
+    <button class="logout-btn" onclick="seDeconnecter()">🚪</button>
+  </div>
+
+  <div class="container">
+    <div class="welcome-card">
+      <h2>Bonjour, <span id="welcomeName">Employé</span> !</h2>
+      <p>Bienvenue sur votre espace de pointage</p>
+      <div class="time-display" id="currentTime">
+        Chargement de l'heure...
+      </div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" onclick="showTab('punch')">📷 Pointage</div>
+      <div class="tab" onclick="showTab('history')">📊 Historique</div>
+      <div class="tab" onclick="showTab('profile')">👤 Profil</div>
+    </div>
+
+    <!-- Onglet Pointage -->
+    <div class="tab-content active" id="punch-tab">
+      <div class="punch-card">
+        <h3>Votre Pointage</h3>
+        <div class="status-indicator" id="punchStatus">Chargement...</div>
+        <button class="punch-btn" id="punchInBtn" onclick="punchIn()">🟢 Pointer Entrée</button>
+        <button class="punch-btn" id="punchOutBtn" onclick="punchOut()">🔴 Pointer Sortie</button>
+        <button class="punch-btn" id="scanQrBtn" onclick="openQrScanner()" style="background: rgba(255, 255, 255, 0.3); border-color: rgba(255, 255, 255, 0.5);">
+          📱 Scanner QR Code
+        </button>
+        <div class="loading" id="punchLoading" style="display: none;">
+          <div class="spinner"></div>
+          <p>Pointage en cours...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Scanner QR -->
+    <div id="qrModal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Scanner QR Code</h3>
+          <button class="close-btn" onclick="closeQrScanner()">✕</button>
+        </div>
+        <div class="modal-body">
+          <div id="qr-reader" style="width: 100%; max-width: 400px; margin: 0 auto;"></div>
+          <div class="qr-instructions">
+            <p>📱 Pointez votre caméra vers le QR code</p>
+            <p>🎯 Le pointage sera automatique après scan</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Onglet Historique -->
+    <div class="tab-content" id="history-tab">
+      <h3>Historique des Pointages</h3>
+      <div id="historyList">
+        <p style="text-align: center; color: #718096;">Chargement de l'historique...</p>
+      </div>
+    </div>
+
+    <!-- Onglet Profil -->
+    <div class="tab-content" id="profile-tab">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-number" id="totalPunches">0</div>
+          <div class="stat-label">Total Pointages</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="monthPunches">0</div>
+          <div class="stat-label">Ce Mois</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="weekPunches">0</div>
+          <div class="stat-label">Cette Semaine</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="hoursWorked">0h</div>
+          <div class="stat-label">Heures Travaillées</div>
+        </div>
+      </div>
+
+      <div class="profile-section">
+        <h3>Informations Personnelles</h3>
+        <div class="profile-item">
+          <span class="profile-label">Nom complet</span>
+          <span class="profile-value" id="fullName">Chargement...</span>
+        </div>
+        <div class="profile-item">
+          <span class="profile-label">Matricule</span>
+          <span class="profile-value" id="employeeId">Chargement...</span>
+        </div>
+        <div class="profile-item">
+          <span class="profile-label">Email</span>
+          <span class="profile-value" id="email">Chargement...</span>
+        </div>
+        <div class="profile-item">
+          <span class="profile-label">Département</span>
+          <span class="profile-value" id="department">Chargement...</span>
+        </div>
+      </div>
+
+      <div class="profile-section">
+        <h3>Actions</h3>
+        <button class="btn btn-warning" onclick="modifierProfil()">✏️ Modifier Profil</button>
+        <button class="btn" onclick="changerMotDePasse()">🔒 Changer Mot de Passe</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bibliothèque QR Scanner -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  
+  <script>
+    const API_BASE_URL = 'https://timesheetapp.azurewebsites.net/api';
+    
+    // Gestion de l'authentification
+    class AuthManager {
+      constructor() {
+        this.token = localStorage.getItem('authToken');
+        this.user = JSON.parse(localStorage.getItem('user'));
+      }
+
+      async login(username, password) {
+        try {
+          const response = await fetch(`${API_BASE_URL}/Auth/login`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              Email: username,
+              password: password
+            })
+          });
+
+          if (!response.ok) {
+            throw new Error(`Erreur HTTP: ${response.status}`);
+          }
+
+          const data = await response.json();
+          console.log('🔍 Données de connexion reçues:', data);
+          
+          this.token = data.token || data.accessToken;
+          this.user = data.user || data || { username: username, email: username };
+          
+          // S'assurer que l'utilisateur a un ID
+          if (!this.user.id && !this.user.employeeId && !this.user.userId) {
+            console.warn('⚠️ Aucun ID utilisateur trouvé dans la réponse, utilisation de l\'email comme ID');
+            this.user.id = username;
+          }
+          
+          console.log('🔍 Utilisateur stocké:', this.user);
+          
+          localStorage.setItem('authToken', this.token);
+          localStorage.setItem('user', JSON.stringify(this.user));
+          
+          return { success: true, data };
+        } catch (error) {
+          console.error('Erreur de connexion:', error);
+          throw error;
+        }
+      }
+
+      logout() {
+        this.token = null;
+        this.user = null;
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('user');
+        window.location.href = 'login.html';
+      }
+
+      isAuthenticated() {
+        return !!this.token;
+      }
+
+      getToken() {
+        return this.token;
+      }
+
+      getUser() {
+        return this.user;
+      }
+
+      async validateToken() {
+        if (!this.token) return false;
+        
+        try {
+          const response = await fetch(`${API_BASE_URL}/Auth/users/${this.user?.id || 'me'}`, {
+            headers: {
+              'Authorization': `Bearer ${this.token}`
+            }
+          });
+          return response.ok;
+        } catch (error) {
+          console.error('Erreur validation token:', error);
+          return false;
+        }
+      }
+    }
+
+    // Gestion des pointages
+    class PunchManager {
+      constructor(authManager) {
+        this.authManager = authManager;
+      }
+
+      async punchIn() {
+        try {
+          const response = await fetch(`${API_BASE_URL}/Punch/punch-in`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${this.authManager.getToken()}`
+            },
+            body: JSON.stringify({
+              employeeId: this.authManager.getUser()?.id || this.authManager.getUser()?.employeeId,
+              timestamp: new Date().toISOString(),
+              location: 'Bureau Principal'
+            })
+          });
+
+          if (!response.ok) {
+            throw new Error(`Erreur HTTP: ${response.status}`);
+          }
+
+          const data = await response.json();
+          return { success: true, data };
+        } catch (error) {
+          console.error('Erreur pointage entrée:', error);
+          throw error;
+        }
+      }
+
+      async punchOut() {
+        try {
+          const response = await fetch(`${API_BASE_URL}/Punch/punch-out`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${this.authManager.getToken()}`
+            },
+            body: JSON.stringify({
+              employeeId: this.authManager.getUser()?.id || this.authManager.getUser()?.employeeId,
+              timestamp: new Date().toISOString(),
+              location: 'Bureau Principal'
+            })
+          });
+
+          if (!response.ok) {
+            throw new Error(`Erreur HTTP: ${response.status}`);
+          }
+
+          const data = await response.json();
+          return { success: true, data };
+        } catch (error) {
+          console.error('Erreur pointage sortie:', error);
+          throw error;
+        }
+      }
+
+      async getCurrentStatus() {
+        try {
+          // Récupérer l'ID de l'utilisateur connecté
+          const user = this.authManager.getUser();
+          const userId = user?.id || user?.employeeId || user?.userId;
+          
+          if (!userId) {
+            console.error('Aucun ID utilisateur trouvé pour le statut');
+            return { status: 'out', lastPunch: null };
+          }
+
+          console.log('Récupération statut pour utilisateur ID:', userId);
+          
+          const response = await fetch(`${API_BASE_URL}/Punch/current-status/${userId}`, {
+            headers: {
+              'Authorization': `Bearer ${this.authManager.getToken()}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          console.log('Réponse API statut:', response.status, response.statusText);
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Erreur API statut:', errorText);
+            return { status: 'out', lastPunch: null };
+          }
+
+          const data = await response.json();
+          console.log('Données statut reçues:', data);
+          return data;
+        } catch (error) {
+          console.error('Erreur récupération statut:', error);
+          return { status: 'out', lastPunch: null };
+        }
+      }
+
+      async getHistory(startDate = null, endDate = null) {
+        try {
+          // Récupérer l'ID de l'utilisateur connecté
+          const user = this.authManager.getUser();
+          console.log('🔍 PunchManager - Utilisateur récupéré:', user);
+          
+          // Essayer différentes propriétés pour l'ID utilisateur
+          const userId = user?.id || user?.employeeId || user?.userId || user?.EmployeeId || user?.UserId;
+          
+          console.log('🔍 PunchManager - ID utilisateur trouvé:', userId);
+          console.log('🔍 PunchManager - Propriétés disponibles:', Object.keys(user || {}));
+          
+          if (!userId) {
+            console.error('❌ PunchManager - Aucun ID utilisateur trouvé dans:', user);
+            throw new Error('Utilisateur non identifié');
+          }
+
+          console.log('Récupération historique pour utilisateur ID:', userId);
+          
+          let url = `${API_BASE_URL}/Punch/history/${userId}`;
+          
+          // Ajouter les paramètres de date si fournis
+          const params = [];
+          if (startDate) params.push(`startDate=${startDate}`);
+          if (endDate) params.push(`endDate=${endDate}`);
+          
+          if (params.length > 0) {
+            url += `?${params.join('&')}`;
+          }
+
+          console.log('URL de récupération historique:', url);
+
+          const response = await fetch(url, {
+            headers: {
+              'Authorization': `Bearer ${this.authManager.getToken()}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          console.log('Réponse API historique:', response.status, response.statusText);
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Erreur API historique:', errorText);
+            throw new Error(`Erreur HTTP: ${response.status} - ${errorText}`);
+          }
+
+          const data = await response.json();
+          console.log('Données historique reçues:', data);
+          return data;
+        } catch (error) {
+          console.error('Erreur récupération historique:', error);
+          throw error;
+        }
+      }
+
+      async getStatistics() {
+        try {
+          // Récupérer l'ID de l'utilisateur connecté
+          const user = this.authManager.getUser();
+          const userId = user?.id || user?.employeeId || user?.userId;
+          
+          if (!userId) {
+            console.error('Aucun ID utilisateur trouvé pour les statistiques');
+            return {
+              totalPunches: 0,
+              monthPunches: 0,
+              weekPunches: 0,
+              hoursWorked: 0
+            };
+          }
+
+          console.log('Récupération statistiques pour utilisateur ID:', userId);
+          
+          const response = await fetch(`${API_BASE_URL}/Punch/statistics/${userId}`, {
+            headers: {
+              'Authorization': `Bearer ${this.authManager.getToken()}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          console.log('Réponse API statistiques:', response.status, response.statusText);
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Erreur API statistiques:', errorText);
+            return {
+              totalPunches: 0,
+              monthPunches: 0,
+              weekPunches: 0,
+              hoursWorked: 0
+            };
+          }
+
+          const data = await response.json();
+          console.log('Données statistiques reçues:', data);
+          return data;
+        } catch (error) {
+          console.error('Erreur récupération statistiques:', error);
+          return {
+            totalPunches: 0,
+            monthPunches: 0,
+            weekPunches: 0,
+            hoursWorked: 0
+          };
+        }
+      }
+    }
+
+    // Gestion du profil utilisateur
+    class ProfileManager {
+      constructor(authManager) {
+        this.authManager = authManager;
+      }
+
+      async getUserProfile() {
+        try {
+          const response = await fetch(`${API_BASE_URL}/Users/profile/${this.authManager.getUser()?.id || 'me'}`, {
+            headers: {
+              'Authorization': `Bearer ${this.authManager.getToken()}`
+            }
+          });
+
+          if (!response.ok) {
+            throw new Error(`Erreur HTTP: ${response.status}`);
+          }
+
+          const data = await response.json();
+          return data;
+        } catch (error) {
+          console.error('Erreur récupération profil:', error);
+          return null;
+        }
+      }
+
+      async updateProfile(profileData) {
+        try {
+          const response = await fetch(`${API_BASE_URL}/Users/profile/${this.authManager.getUser()?.id || 'me'}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${this.authManager.getToken()}`
+            },
+            body: JSON.stringify(profileData)
+          });
+
+          if (!response.ok) {
+            throw new Error(`Erreur HTTP: ${response.status}`);
+          }
+
+          const data = await response.json();
+          return { success: true, data };
+        } catch (error) {
+          console.error('Erreur mise à jour profil:', error);
+          throw error;
+        }
+      }
+
+      async changePassword(oldPassword, newPassword) {
+        try {
+          const response = await fetch(`${API_BASE_URL}/Auth/change-password`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${this.authManager.getToken()}`
+            },
+            body: JSON.stringify({
+              oldPassword: oldPassword,
+              newPassword: newPassword
+            })
+          });
+
+          if (!response.ok) {
+            throw new Error(`Erreur HTTP: ${response.status}`);
+          }
+
+          const data = await response.json();
+          return { success: true, data };
+        } catch (error) {
+          console.error('Erreur changement mot de passe:', error);
+          throw error;
+        }
+      }
+    }
+
+    // Initialisation des gestionnaires
+    const authManager = new AuthManager();
+    const punchManager = new PunchManager(authManager);
+    const profileManager = new ProfileManager(authManager);
+
+    // État global
+    let currentPunchStatus = 'out';
+    let userProfile = null;
+    let punchStatistics = null;
+
+    // Initialisation
+    document.addEventListener('DOMContentLoaded', async function() {
+      await initializeDashboard();
+      setInterval(mettreAJourHeure, 1000);
+    });
+
+    async function initializeDashboard() {
+      try {
+        // Charger le profil utilisateur
+        userProfile = await profileManager.getUserProfile();
+        
+        // Charger le statut actuel
+        const statusData = await punchManager.getCurrentStatus();
+        currentPunchStatus = statusData.status || 'out';
+        
+        // Charger les statistiques
+        punchStatistics = await punchManager.getStatistics();
+        
+        // Mettre à jour l'interface
+        chargerDonneesUtilisateur();
+        mettreAJourHeure();
+        mettreAJourStatutPointage();
+        mettreAJourStatistiques();
+        
+      } catch (error) {
+        console.error('Erreur initialisation dashboard:', error);
+        // Utiliser les données par défaut en cas d'erreur
+        chargerDonneesUtilisateur();
+        mettreAJourHeure();
+      }
+    }
+
+    function chargerDonneesUtilisateur() {
+      const user = authManager.getUser();
+      const profile = userProfile || {
+        name: user?.name || 'Employé',
+        employeeId: user?.employeeId || 'EMP001',
+        email: user?.email || 'employe@entreprise.com',
+        department: 'Informatique',
+        position: 'Développeur'
+      };
+
+      // Mettre à jour l'interface
+      document.getElementById('userName').textContent = profile.name;
+      document.getElementById('welcomeName').textContent = profile.name;
+      document.getElementById('fullName').textContent = profile.name;
+      document.getElementById('employeeId').textContent = profile.employeeId;
+      document.getElementById('email').textContent = profile.email;
+      document.getElementById('department').textContent = profile.department;
+      
+      // Avatar avec initiales
+      const initials = profile.name.split(' ').map(n => n[0]).join('');
+      document.getElementById('userAvatar').textContent = initials;
+    }
+
+    function mettreAJourHeure() {
+      const now = new Date();
+      const timeString = now.toLocaleTimeString('fr-FR', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+      document.getElementById('currentTime').textContent = timeString;
+    }
+
+    function mettreAJourStatutPointage() {
+      const statusElement = document.getElementById('punchStatus');
+      const punchInBtn = document.getElementById('punchInBtn');
+      const punchOutBtn = document.getElementById('punchOutBtn');
+
+      if (currentPunchStatus === 'in') {
+        statusElement.textContent = '🟢 Vous êtes en service';
+        statusElement.className = 'status-indicator status-in';
+        punchInBtn.disabled = true;
+        punchOutBtn.disabled = false;
+      } else {
+        statusElement.textContent = '🔴 Vous n\'êtes plus en service';
+        statusElement.className = 'status-indicator status-out';
+        punchInBtn.disabled = false;
+        punchOutBtn.disabled = true;
+      }
+    }
+
+    function mettreAJourStatistiques() {
+      const stats = punchStatistics || {
+        totalPunches: 0,
+        monthPunches: 0,
+        weekPunches: 0,
+        hoursWorked: 0
+      };
+
+      document.getElementById('totalPunches').textContent = stats.totalPunches || 0;
+      document.getElementById('monthPunches').textContent = stats.monthPunches || 0;
+      document.getElementById('weekPunches').textContent = stats.weekPunches || 0;
+      document.getElementById('hoursWorked').textContent = (stats.hoursWorked || 0) + 'h';
+    }
+
+    function showTab(tabName) {
+      // Masquer tous les onglets
+      document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.remove('active');
+      });
+
+      // Afficher l'onglet sélectionné
+      document.getElementById(tabName + '-tab').classList.add('active');
+      event.target.classList.add('active');
+
+      // Charger les données spécifiques à l'onglet
+      if (tabName === 'history') {
+        chargerHistorique();
+      }
+    }
+
+    async function punchIn() {
+      const loading = document.getElementById('punchLoading');
+      loading.style.display = 'flex';
+
+      try {
+        await punchManager.punchIn();
+        
+        currentPunchStatus = 'in';
+        mettreAJourStatutPointage();
+        
+        // Ajouter à l'historique local
+        ajouterPointage('entrée');
+        
+        // Mettre à jour les statistiques
+        punchStatistics = await punchManager.getStatistics();
+        mettreAJourStatistiques();
+        
+        // Afficher un message de succès
+        showNotification('Pointage entrée enregistré avec succès !', 'success');
+        
+      } catch (error) {
+        console.error('Erreur pointage entrée:', error);
+        showNotification('Erreur lors du pointage entrée. Veuillez réessayer.', 'error');
+      } finally {
+        loading.style.display = 'none';
+      }
+    }
+
+    async function punchOut() {
+      const loading = document.getElementById('punchLoading');
+      loading.style.display = 'flex';
+
+      try {
+        await punchManager.punchOut();
+        
+        currentPunchStatus = 'out';
+        mettreAJourStatutPointage();
+        
+        // Ajouter à l'historique local
+        ajouterPointage('sortie');
+        
+        // Mettre à jour les statistiques
+        punchStatistics = await punchManager.getStatistics();
+        mettreAJourStatistiques();
+        
+        // Afficher un message de succès
+        showNotification('Pointage sortie enregistré avec succès !', 'success');
+        
+      } catch (error) {
+        console.error('Erreur pointage sortie:', error);
+        showNotification('Erreur lors du pointage sortie. Veuillez réessayer.', 'error');
+      } finally {
+        loading.style.display = 'none';
+      }
+    }
+
+    function ajouterPointage(type) {
+      const now = new Date();
+      const pointage = {
+        date: now.toLocaleDateString('fr-FR'),
+        time: now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+        type: type
+      };
+      
+      // Ajouter à l'historique local
+      const historyList = document.getElementById('historyList');
+      const historyItem = document.createElement('div');
+      historyItem.className = 'history-item';
+      historyItem.innerHTML = `
+        <div class="history-date">${pointage.date}</div>
+        <div class="history-time">${pointage.time}</div>
+        <div class="history-type ${type === 'entrée' ? 'type-in' : 'type-out'}">${type}</div>
+      `;
+      
+      historyList.insertBefore(historyItem, historyList.firstChild);
+    }
+
+    async function chargerHistorique() {
+      const historyList = document.getElementById('historyList');
+      historyList.innerHTML = '<p style="text-align: center; color: #718096;">Chargement de l\'historique...</p>';
+
+      try {
+        // Récupérer l'ID de l'utilisateur connecté
+        const user = authManager.getUser();
+        console.log('🔍 Utilisateur récupéré:', user);
+        console.log('🔍 Token disponible:', !!authManager.getToken());
+        
+        // Essayer différentes propriétés pour l'ID utilisateur
+        const userId = user?.id || user?.employeeId || user?.userId || user?.EmployeeId || user?.UserId;
+        
+        console.log('🔍 ID utilisateur trouvé:', userId);
+        console.log('🔍 Propriétés disponibles:', Object.keys(user || {}));
+        
+        if (!userId) {
+          console.error('❌ Aucun ID utilisateur trouvé dans:', user);
+          historyList.innerHTML = '<p style="text-align: center; color: #dc2626;">Erreur: Utilisateur non identifié</p>';
+          return;
+        }
+
+        console.log('Récupération historique pour utilisateur:', userId);
+        
+        // Récupérer l'historique avec l'ID de l'utilisateur
+        const historique = await punchManager.getHistory();
+        
+        historyList.innerHTML = '';
+        
+        if (!historique || historique.length === 0) {
+          historyList.innerHTML = '<p style="text-align: center; color: #718096;">Aucun pointage trouvé pour votre compte</p>';
+          return;
+        }
+        
+        console.log('Historique récupéré:', historique);
+        
+        // Trier par date (plus récent en premier)
+        const historiqueTrie = historique.sort((a, b) => 
+          new Date(b.timestamp || b.date) - new Date(a.timestamp || a.date)
+        );
+        
+        historiqueTrie.forEach(pointage => {
+          const historyItem = document.createElement('div');
+          historyItem.className = 'history-item';
+          
+          // Gérer différents formats de date
+          const date = pointage.timestamp || pointage.date || pointage.createdAt;
+          const dateObj = new Date(date);
+          
+          // Déterminer le type de pointage
+          let type = pointage.type || pointage.action || 'unknown';
+          let typeDisplay = 'Inconnu';
+          
+          if (type === 'in' || type === 'entrée' || type === 'entry') {
+            typeDisplay = 'Entrée';
+            historyItem.classList.add('type-in');
+          } else if (type === 'out' || type === 'sortie' || type === 'exit') {
+            typeDisplay = 'Sortie';
+            historyItem.classList.add('type-out');
+          }
+          
+          historyItem.innerHTML = `
+            <div class="history-date">${dateObj.toLocaleDateString('fr-FR')}</div>
+            <div class="history-time">${dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</div>
+            <div class="history-type ${type === 'in' || type === 'entrée' ? 'type-in' : 'type-out'}">${typeDisplay}</div>
+            ${pointage.location ? `<div class="history-location" style="font-size: 12px; color: #718096; margin-top: 5px;">📍 ${pointage.location}</div>` : ''}
+          `;
+          
+          historyList.appendChild(historyItem);
+        });
+        
+        // Afficher le nombre total de pointages
+        const totalElement = document.createElement('div');
+        totalElement.style.cssText = 'text-align: center; color: #718096; margin-top: 15px; font-size: 14px;';
+        totalElement.textContent = `Total: ${historiqueTrie.length} pointage(s)`;
+        historyList.appendChild(totalElement);
+        
+      } catch (error) {
+        console.error('Erreur chargement historique:', error);
+        historyList.innerHTML = `
+          <p style="text-align: center; color: #dc2626;">Erreur lors du chargement de l'historique</p>
+          <p style="text-align: center; color: #718096; font-size: 12px; margin-top: 10px;">
+            Détails: ${error.message}
+          </p>
+        `;
+      }
+    }
+
+    async function modifierProfil() {
+      const newName = prompt('Nouveau nom complet:', userProfile?.name || '');
+      const newEmail = prompt('Nouvel email:', userProfile?.email || '');
+      
+      if (newName && newEmail) {
+        try {
+          await profileManager.updateProfile({
+            name: newName,
+            email: newEmail
+          });
+          
+          userProfile = { ...userProfile, name: newName, email: newEmail };
+          chargerDonneesUtilisateur();
+          showNotification('Profil mis à jour avec succès !', 'success');
+          
+        } catch (error) {
+          console.error('Erreur mise à jour profil:', error);
+          showNotification('Erreur lors de la mise à jour du profil.', 'error');
+        }
+      }
+    }
+
+    async function changerMotDePasse() {
+      const oldPassword = prompt('Ancien mot de passe:');
+      const newPassword = prompt('Nouveau mot de passe:');
+      const confirmPassword = prompt('Confirmer le nouveau mot de passe:');
+      
+      if (oldPassword && newPassword && newPassword === confirmPassword) {
+        try {
+          await profileManager.changePassword(oldPassword, newPassword);
+          showNotification('Mot de passe changé avec succès !', 'success');
+        } catch (error) {
+          console.error('Erreur changement mot de passe:', error);
+          showNotification('Erreur lors du changement de mot de passe.', 'error');
+        }
+      } else if (newPassword !== confirmPassword) {
+        showNotification('Les mots de passe ne correspondent pas.', 'error');
+      }
+    }
+
+    function seDeconnecter() {
+      if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
+        authManager.logout();
+      }
+    }
+
+    function showNotification(message, type = 'info') {
+      // Créer une notification temporaire
+      const notification = document.createElement('div');
+      notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 20px;
+        border-radius: 10px;
+        color: white;
+        font-weight: 600;
+        z-index: 1000;
+        animation: slideInRight 0.3s ease-out;
+        ${type === 'success' ? 'background: linear-gradient(135deg, #10b981 0%, #059669 100%);' : ''}
+        ${type === 'error' ? 'background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);' : ''}
+        ${type === 'info' ? 'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);' : ''}
+      `;
+      notification.textContent = message;
+      
+      document.body.appendChild(notification);
+      
+      setTimeout(() => {
+        notification.style.animation = 'slideOutRight 0.3s ease-out';
+        setTimeout(() => {
+          document.body.removeChild(notification);
+        }, 300);
+      }, 3000);
+    }
+
+    // Vérifier l'authentification au chargement
+    window.addEventListener('load', function() {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        window.location.href = 'login.html';
+      }
+    });
+
+    // Gestion du Scanner QR
+    let html5QrcodeScanner = null;
+
+    function openQrScanner() {
+      const modal = document.getElementById('qrModal');
+      modal.style.display = 'flex';
+      
+      // Initialiser le scanner après un court délai pour permettre l'animation
+      setTimeout(() => {
+        if (!html5QrcodeScanner) {
+          html5QrcodeScanner = new Html5QrcodeScanner(
+            "qr-reader",
+            { 
+              fps: 10, 
+              qrbox: { width: 250, height: 250 },
+              aspectRatio: 1.0
+            },
+            false
+          );
+          
+          html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+        }
+      }, 300);
+    }
+
+    function closeQrScanner() {
+      const modal = document.getElementById('qrModal');
+      modal.style.display = 'none';
+      
+      if (html5QrcodeScanner) {
+        html5QrcodeScanner.clear();
+        html5QrcodeScanner = null;
+      }
+    }
+
+    function onScanSuccess(decodedText, decodedResult) {
+      console.log('📱 QR Code détecté:', decodedText);
+      
+      try {
+        // Analyser le contenu du QR code selon le format de l'app Flutter
+        const qrData = parseQrCodeContent(decodedText);
+        
+        if (qrData.isValid) {
+          console.log('✅ QR code valide, traitement...');
+          
+          // Vérifier que l'utilisateur connecté correspond à l'employé du QR code
+          const currentUser = authManager.getUser();
+          console.log('🔍 Validation utilisateur:');
+          console.log('  Utilisateur connecté:', currentUser);
+          console.log('  QR data:', qrData);
+          
+          // Vérifier selon le type de QR code
+          let isUserValid = true;
+          let validationMessage = '';
+          
+          if (qrData.type === 'vercel_exact' || qrData.type === 'shortcut') {
+            // Pour les formats avec userId explicite
+            if (qrData.userId && currentUser) {
+              const qrUserId = parseInt(qrData.userId);
+              const currentUserId = parseInt(currentUser.id);
+              console.log('  Comparaison userId:', qrUserId, 'vs', currentUserId);
+              
+              if (qrUserId !== currentUserId) {
+                isUserValid = false;
+                validationMessage = `QR code destiné à l'utilisateur ${qrUserId}, vous êtes ${currentUserId}`;
+              }
+            }
+          } else if (qrData.type === 'vercel_complete') {
+            // Pour le format complet avec employeeId
+            if (qrData.employeeId && currentUser) {
+              const qrEmployeeId = parseInt(qrData.employeeId);
+              const currentUserId = parseInt(currentUser.id);
+              console.log('  Comparaison employeeId:', qrEmployeeId, 'vs', currentUserId);
+              
+              if (qrEmployeeId !== currentUserId) {
+                isUserValid = false;
+                validationMessage = `QR code destiné à l'employé ${qrEmployeeId}, vous êtes ${currentUserId}`;
+              }
+            }
+          } else if (qrData.type === 'simple_text' || qrData.type === 'separator') {
+            // Pour les formats texte simple, pas de validation d'utilisateur
+            console.log('  Format texte simple - pas de validation utilisateur');
+          } else {
+            // Pour les formats par défaut, essayer de valider
+            if (qrData.userId && currentUser) {
+              const qrUserId = parseInt(qrData.userId);
+              const currentUserId = parseInt(currentUser.id);
+              console.log('  Comparaison par défaut:', qrUserId, 'vs', currentUserId);
+              
+              if (qrUserId !== currentUserId) {
+                isUserValid = false;
+                validationMessage = `QR code destiné à l'utilisateur ${qrUserId}, vous êtes ${currentUserId}`;
+              }
+            }
+          }
+          
+          if (!isUserValid) {
+            console.log('❌ QR code non destiné à cet utilisateur:', validationMessage);
+            
+            // Option pour forcer le pointage (pour les tests)
+            const forcePunch = confirm(`❌ ${validationMessage}\n\nVoulez-vous forcer le pointage quand même ? (Mode test)`);
+            if (!forcePunch) {
+              showNotification(`❌ ${validationMessage}`, 'error');
+              return;
+            } else {
+              console.log('⚠️ Pointage forcé en mode test');
+              showNotification('⚠️ Pointage forcé en mode test', 'warning');
+            }
+          } else {
+            console.log('✅ Validation utilisateur réussie');
+          }
+
+          // Créer le pointage via l'API (comme dans l'app Flutter)
+          createTimesheetFromQR(qrData);
+          
+          // Fermer le scanner
+          closeQrScanner();
+        } else {
+          console.log('❌ QR code invalide:', qrData.reason);
+          showNotification(`❌ QR code invalide: ${qrData.reason}`, 'error');
+        }
+      } catch (error) {
+        console.error('Erreur lors du traitement du QR code:', error);
+        showNotification('❌ Erreur lors du traitement du QR code', 'error');
+      }
+    }
+
+    function parseQrCodeContent(qrText) {
+      console.log('🔍 === ANALYSE QR CODE ===');
+      console.log('Contenu brut:', qrText);
+      console.log('Type de données:', typeof qrText);
+      console.log('Longueur:', qrText.length);
+      
+      try {
+        // Parser comme JSON (format principal de l'app Flutter)
+        const jsonData = JSON.parse(qrText);
+        console.log('✅ QR code JSON parsé:', jsonData);
+        console.log('📋 Clés disponibles:', Object.keys(jsonData));
+        
+        // Format Vercel exact (userId + userName + planningId + timeSheetTypeId)
+        if (jsonData.userId && jsonData.userName && jsonData.planningId) {
+          console.log('🎯 Format détecté: Vercel (exact)');
+          console.log('  userId:', jsonData.userId);
+          console.log('  userName:', jsonData.userName);
+          console.log('  planningId:', jsonData.planningId);
+          console.log('  timeSheetTypeId:', jsonData.timeSheetTypeId || 1);
+          
+          // Vérifier l'expiration (30 secondes)
+          if (jsonData.timestamp) {
+            const qrTimestamp = new Date(jsonData.timestamp);
+            const now = new Date();
+            const difference = (now - qrTimestamp) / 1000; // en secondes
+            
+            if (difference > 30) {
+              console.log('⏰ QR code expiré:', difference.toFixed(1), 'secondes');
+              return { isValid: false, reason: 'QR code expiré (plus de 30 secondes)' };
+            }
+            
+            console.log('✅ QR code valide:', (30 - difference).toFixed(1), 'secondes restantes');
+          }
+          
+          return {
+            isValid: true,
+            userId: jsonData.userId,
+            userName: jsonData.userName,
+            planningId: jsonData.planningId,
+            timeSheetTypeId: jsonData.timeSheetTypeId || 1,
+            timestamp: jsonData.timestamp,
+            location: jsonData.location,
+            type: 'vercel_exact'
+          };
+        }
+        
+        // Format Vercel complet (site + employé)
+        else if (jsonData.siteId && jsonData.planningId && jsonData.timesheetTypeId) {
+          console.log('🎯 Format détecté: Vercel (complet)');
+          return {
+            isValid: true,
+            siteId: jsonData.siteId,
+            planningId: jsonData.planningId,
+            timesheetTypeId: jsonData.timesheetTypeId,
+            siteName: jsonData.siteName || 'Site inconnu',
+            employeeId: jsonData.employeeId,
+            location: jsonData.location,
+            type: 'vercel_complete'
+          };
+        }
+        
+        // Format raccourci (uid + pid)
+        else if (jsonData.uid && jsonData.pid) {
+          console.log('🎯 Format détecté: raccourci');
+          return {
+            isValid: true,
+            userId: jsonData.uid,
+            planningId: jsonData.pid,
+            timeSheetTypeId: 1,
+            type: 'shortcut'
+          };
+        }
+        
+        // Format inconnu - essayer avec des valeurs par défaut
+        else {
+          console.log('⚠️ Format non reconnu, utilisation des valeurs par défaut');
+          console.log('QR JSON reçu:', jsonData);
+          console.log('Clés disponibles:', Object.keys(jsonData));
+          
+          return {
+            isValid: true,
+            userId: jsonData.userId || jsonData.employeeId || 202,
+            planningId: jsonData.planningId || 5,
+            timeSheetTypeId: jsonData.timeSheetTypeId || 1,
+            location: jsonData.location,
+            type: 'default'
+          };
+        }
+        
+      } catch (e) {
+        console.log('❌ Erreur parsing JSON:', e.message);
+        console.log('📝 Tentative d\'analyse comme texte simple...');
+        
+        // Analyser comme texte simple
+        const text = qrText.toLowerCase();
+        
+        // Format simple: "IN" ou "OUT"
+        if (text === 'in' || text === 'out') {
+          console.log('🎯 Format détecté: texte simple');
+          return {
+            isValid: true,
+            action: text,
+            type: 'simple_text'
+          };
+        }
+        
+        // Format avec séparateur: "PUNCH:IN" ou "PUNCH:OUT"
+        if (text.includes(':')) {
+          const parts = text.split(':');
+          if (parts[0] === 'punch' && (parts[1] === 'in' || parts[1] === 'out')) {
+            console.log('🎯 Format détecté: séparateur');
+            return {
+              isValid: true,
+              action: parts[1],
+              type: 'separator'
+            };
+          }
+        }
+        
+        return { 
+          isValid: false, 
+          reason: 'Format non reconnu - JSON invalide et texte non reconnu',
+          rawData: qrText
+        };
+      }
+    }
+
+    function onScanFailure(error) {
+      // Erreur de scan - ne pas afficher d'erreur pour éviter le spam
+      console.log('Scan en cours...');
+    }
+
+    // Fonction pour créer un timesheet depuis un QR code (comme dans l'app Flutter)
+    async function createTimesheetFromQR(qrData) {
+      const loadingElement = document.getElementById('punchLoading');
+      const statusElement = document.getElementById('punchStatus');
+      
+      try {
+        loadingElement.style.display = 'flex';
+        statusElement.textContent = 'Pointage en cours...';
+        
+        const user = authManager.getUser();
+        if (!user) {
+          showNotification('❌ Utilisateur non connecté', 'error');
+          return;
+        }
+
+        // Générer un code unique (comme dans l'app Flutter)
+        const uniqueCode = generateUniqueCode();
+        
+        // Déterminer les paramètres selon le type de QR code
+        let planningId = 5; // Valeur par défaut
+        let timesheetTypeId = 1; // Valeur par défaut
+        let userName = user.displayName || user.name || 'Utilisateur';
+        
+        console.log('🔍 Analyse du type de QR code:', qrData.type);
+        
+        switch (qrData.type) {
+          case 'vercel_exact':
+            planningId = qrData.planningId || 5;
+            timesheetTypeId = qrData.timeSheetTypeId || 1;
+            userName = qrData.userName || userName;
+            console.log('  Format Vercel exact - planningId:', planningId, 'timesheetTypeId:', timesheetTypeId);
+            break;
+            
+          case 'vercel_complete':
+            planningId = qrData.planningId || 5;
+            timesheetTypeId = qrData.timesheetTypeId || 1;
+            console.log('  Format Vercel complet - planningId:', planningId, 'timesheetTypeId:', timesheetTypeId);
+            break;
+            
+          case 'shortcut':
+            planningId = qrData.planningId || 5;
+            timesheetTypeId = qrData.timeSheetTypeId || 1;
+            console.log('  Format raccourci - planningId:', planningId, 'timesheetTypeId:', timesheetTypeId);
+            break;
+            
+          case 'simple_text':
+          case 'separator':
+            // Pour les formats texte, utiliser les valeurs par défaut
+            console.log('  Format texte simple - utilisation des valeurs par défaut');
+            break;
+            
+          default:
+            planningId = qrData.planningId || 5;
+            timesheetTypeId = qrData.timeSheetTypeId || 1;
+            console.log('  Format par défaut - planningId:', planningId, 'timesheetTypeId:', timesheetTypeId);
+        }
+        
+        // Créer les détails JSON (format raccourci comme dans l'app Flutter)
+        const details = {
+          'uid': user.id, // ID de l'employé réel
+          'un': userName,
+          'pid': planningId,
+          'ts': Date.now(),
+          'lat': 0.0, // Position GPS (à implémenter si nécessaire)
+          'lng': 0.0,
+        };
+
+        const detailsJson = JSON.stringify(details);
+        
+        console.log('🔄 Création du timesheet...');
+        console.log('  Code:', uniqueCode);
+        console.log('  Details:', detailsJson);
+        console.log('  PlanningId:', planningId);
+        console.log('  TimesheetTypeId:', timesheetTypeId);
+        console.log('  Type QR:', qrData.type);
+
+        // Appel API pour créer le timesheet
+        const response = await fetch(`${API_BASE_URL}/Timesheet`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authManager.getToken()}`
+          },
+          body: JSON.stringify({
+            code: uniqueCode,
+            details: detailsJson,
+            start: new Date().toISOString(),
+            planningId: planningId,
+            timesheetTypeId: timesheetTypeId,
+          })
+        });
+
+        console.log('📡 Réponse API:', response.status, response.statusText);
+
+        if (response.ok) {
+          const timesheet = await response.json();
+          console.log('✅ Timesheet créé:', timesheet);
+          
+          showNotification('✅ Pointage enregistré avec succès!', 'success');
+          
+          // Mettre à jour le statut
+          updatePunchStatus();
+          
+          // Retour automatique après 3 secondes
+          setTimeout(() => {
+            closeQrScanner();
+          }, 3000);
+          
+        } else {
+          const errorText = await response.text();
+          console.error('❌ Erreur API:', errorText);
+          showNotification(`❌ Erreur lors de l'enregistrement: ${errorText}`, 'error');
+        }
+        
+      } catch (error) {
+        console.error('❌ Erreur lors de la création du timesheet:', error);
+        showNotification('❌ Erreur lors du pointage', 'error');
+      } finally {
+        loadingElement.style.display = 'none';
+      }
+    }
+
+    // Fonction pour générer un code unique (comme dans l'app Flutter)
+    function generateUniqueCode() {
+      // Générer un code de 8 caractères alphanumériques
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      let result = '';
+      for (let i = 0; i < 8; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return result;
+    }
+
+    // Fonction pour effectuer le pointage
+    async function performPunch(action) {
+      const loadingElement = document.getElementById('punchLoading');
+      const statusElement = document.getElementById('punchStatus');
+      
+      try {
+        loadingElement.style.display = 'flex';
+        statusElement.textContent = 'Pointage en cours...';
+        
+        const punchManager = new PunchManager();
+        let result;
+        
+        if (action === 'in') {
+          result = await punchManager.punchIn();
+        } else {
+          result = await punchManager.punchOut();
+        }
+        
+        if (result.success) {
+          showNotification(`✅ Pointage ${action === 'in' ? 'entrée' : 'sortie'} effectué avec succès`, 'success');
+          updatePunchStatus();
+        } else {
+          showNotification(`❌ Erreur: ${result.message}`, 'error');
+        }
+      } catch (error) {
+        console.error('Erreur lors du pointage:', error);
+        showNotification('❌ Erreur lors du pointage', 'error');
+      } finally {
+        loadingElement.style.display = 'none';
+      }
+    }
+
+    // Ajouter les styles pour les animations de notification
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slideInRight {
+        from {
+          transform: translateX(100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+      
+      @keyframes slideOutRight {
+        from {
+          transform: translateX(0);
+          opacity: 1;
+        }
+        to {
+          transform: translateX(100%);
+          opacity: 0;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  </script>
+</body>
+</html>

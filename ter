@@ -1,3 +1,0 @@
-[33m2b0e50a[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m)[m Fix QR scanner library loading issue - Add multiple CDN fallbacks and improved error handling
-[33me857a8c[m Add comprehensive documentation and landing page
-[33m9fda003[m Correction du chargement de la bibliothèque QR scanner
