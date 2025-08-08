@@ -580,7 +580,7 @@
     <div class="tab-content" id="history-tab">
       <h3>Historique des Pointages</h3>
       <div id="historyList">
-        <p style="text-align: center; color: #718096;">Chargement de l'historique...</p>
+        <p style="text-align: center; color: #718096;">Chargement de l\'historique...</p>
       </div>
     </div>
 
@@ -606,13 +606,13 @@
       </div>
 
       <div class="profile-section">
-        <h3>Informations Personnelles</h3>
+        <h3>Informations du Profil</h3>
         <div class="profile-item">
           <span class="profile-label">Nom complet</span>
           <span class="profile-value" id="fullName">Chargement...</span>
         </div>
         <div class="profile-item">
-          <span class="profile-label">Matricule</span>
+          <span class="profile-label">ID Employé</span>
           <span class="profile-value" id="employeeId">Chargement...</span>
         </div>
         <div class="profile-item">
@@ -623,12 +623,28 @@
           <span class="profile-label">Département</span>
           <span class="profile-value" id="department">Chargement...</span>
         </div>
+        <div class="profile-item">
+          <span class="profile-label">Matricule</span>
+          <span class="profile-value" id="matricule">Chargement...</span>
+        </div>
+        <div class="profile-item">
+          <span class="profile-label">Numéro de téléphone</span>
+          <span class="profile-value" id="phone">Chargement...</span>
+        </div>
+        
+        <!-- Bouton de debug temporaire -->
+        <button onclick="debugUserData()" style="margin-top: 15px; background: #f59e0b; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer;">
+          🔍 Debug Données Utilisateur
+        </button>
       </div>
 
       <div class="profile-section">
         <h3>Actions</h3>
         <button class="btn btn-warning" onclick="modifierProfil()">✏️ Modifier Profil</button>
         <button class="btn" onclick="changerMotDePasse()">🔒 Changer Mot de Passe</button>
+        <button class="btn btn-info" onclick="debugUserData()" style="margin-top: 10px;">🔍 Debug Données</button>
+                  <button class="btn btn-success" onclick="setCompleteUserData()" style="margin-top: 10px;">🔧 Définir Données Complètes</button>
+          <button class="btn btn-info" onclick="testLoginAPI()" style="margin-top: 10px;">🧪 Tester API Login</button>
       </div>
     </div>
   </div>
@@ -637,60 +653,353 @@
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   
   <script>
+    // Configuration des APIs
     const API_BASE_URL = 'https://timesheetapp.azurewebsites.net/api';
+    
+    // Fonction helper pour obtenir l'ID utilisateur de manière sécurisée
+    function getUserId(user) {
+      if (!user) return null;
+      
+      // Priorité 1: ID numérique (le plus fiable)
+      if (user.id && !isNaN(user.id)) {
+        console.log('🔍 ID numérique trouvé:', user.id);
+        return user.id;
+      }
+      
+      // Priorité 2: EmployeeId numérique
+      if (user.employeeId && !isNaN(user.employeeId)) {
+        console.log('🔍 EmployeeId numérique trouvé:', user.employeeId);
+        return user.employeeId;
+      }
+      
+      // Priorité 3: UserId numérique
+      if (user.userId && !isNaN(user.userId)) {
+        console.log('🔍 UserId numérique trouvé:', user.userId);
+        return user.userId;
+      }
+      
+      // Priorité 4: Matricule (si disponible)
+      if (user.matricule) {
+        console.log('🔍 Matricule trouvé:', user.matricule);
+        return user.matricule;
+      }
+      
+      // Priorité 5: Email (pour les cas où l'ID numérique n'est pas disponible)
+      if (user.email) {
+        console.log('🔍 Email utilisé comme ID:', user.email);
+        return user.email;
+      }
+      
+      // Priorité 6: Autres propriétés possibles
+      const possibleIds = [
+        user.EmployeeId, 
+        user.UserId,
+        user.username,
+        user.fullName
+      ];
+      
+      for (const id of possibleIds) {
+        if (id !== null && id !== undefined && id !== '') {
+          console.log('🔍 ID alternatif trouvé:', id, 'Type:', typeof id);
+          return id;
+        }
+      }
+      
+      console.log('🔍 Aucun ID trouvé dans:', user);
+      return null;
+    }
+    
+    // Fonction helper pour obtenir l'ID utilisateur NUMÉRIQUE uniquement (pour les APIs)
+    function getNumericUserId(user) {
+      if (!user) return null;
+      
+      // Priorité 1: ID numérique (le plus fiable)
+      if (user.id && !isNaN(user.id)) {
+        console.log('🔍 ID numérique trouvé pour API:', user.id);
+        return user.id;
+      }
+      
+      // Priorité 2: EmployeeId numérique
+      if (user.employeeId && !isNaN(user.employeeId)) {
+        console.log('🔍 EmployeeId numérique trouvé pour API:', user.employeeId);
+        return user.employeeId;
+      }
+      
+      // Priorité 3: UserId numérique
+      if (user.userId && !isNaN(user.userId)) {
+        console.log('🔍 UserId numérique trouvé pour API:', user.userId);
+        return user.userId;
+      }
+      
+      // Priorité 4: Matricule (si c'est un nombre)
+      if (user.matricule && !isNaN(user.matricule)) {
+        console.log('🔍 Matricule numérique trouvé pour API:', user.matricule);
+        return user.matricule;
+      }
+      
+      console.log('🔍 Aucun ID numérique trouvé pour API dans:', user);
+      return null;
+    }
+    
+    // Fonction pour obtenir les informations complètes de l'utilisateur
+    function getUserCompleteInfo(user) {
+      if (!user) return null;
+      
+      return {
+        id: user.id || null,
+        employeeId: user.employeeId || null,
+        userId: user.userId || null,
+        matricule: user.matricule || null,
+        email: user.email || null,
+        fullName: user.fullName || user.name || null,
+        phone: user.phone || null,
+        // Informations complètes pour le tri
+        completeInfo: {
+          id: user.id,
+          employeeId: user.employeeId,
+          userId: user.userId,
+          matricule: user.matricule,
+          email: user.email,
+          fullName: user.fullName || user.name,
+          phone: user.phone
+        }
+      };
+    }
+    
+    // Fonction de debug pour analyser les données utilisateur
+function debugUserData() {
+  const user = authManager.getUser();
+  console.log('🔍 === DEBUG DONNÉES UTILISATEUR ===');
+  console.log('User brut:', user);
+  
+  if (user) {
+    console.log('Propriétés disponibles:');
+    Object.keys(user).forEach(key => {
+      console.log(`  ${key}:`, user[key], '(type:', typeof user[key], ')');
+    });
+    
+    const userInfo = getUserCompleteInfo(user);
+    console.log('UserInfo traité:', userInfo);
+    
+    const numericId = getNumericUserId(user);
+    console.log('ID numérique pour API:', numericId);
+    
+    const regularId = getUserId(user);
+    console.log('ID régulier:', regularId);
+  } else {
+    console.log('❌ Aucun utilisateur trouvé');
+  }
+  console.log('🔍 === FIN DEBUG ===');
+}
+
+// Fonction temporaire pour définir les données utilisateur complètes (pour test)
+function setCompleteUserData() {
+  const completeUser = {
+    id: 97,
+    employeeId: 97,
+    userId: 97,
+    email: "toto.mulumba@gmail.com",
+    username: "toto.mulumba@gmail.com",
+    displayName: "mulumba kabeya toto",
+    userName: "toto.mulumba@gmail.com",
+    fullName: "mulumba kabeya toto",
+    matricule: "060720240080",
+    phone: "+243000000000",
+    department: "Informatique",
+    employee: {
+      id: 97,
+      matricule: "060720240080",
+      firstName: "mulumba",
+      lastName: "kabeya toto",
+      personalPhone: "+243000000000",
+      personalEmail: "toto.mulumba@gmail.com",
+      fullName: "mulumba kabeya toto"
+    }
+  };
+  console.log('🔧 Définition des données utilisateur complètes:', completeUser);
+  authManager.user = completeUser;
+  localStorage.setItem('user', JSON.stringify(completeUser));
+  console.log('✅ Données utilisateur mises à jour. Rechargez la page pour voir les changements.');
+  alert('Données utilisateur mises à jour. Rechargez la page pour voir les changements.');
+}
+
+// Fonction pour tester la réponse de l'API de connexion
+async function testLoginAPI() {
+  try {
+    console.log('🧪 Test de l\'API de connexion...');
+    
+    const response = await fetch(`${API_BASE_URL}/Auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: "Test@test.com", // Utiliser les identifiants de test de l'app Flutter
+        password: "test123"
+      })
+    });
+
+    console.log('📡 Réponse HTTP:', response.status, response.statusText);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Erreur API:', errorText);
+      return;
+    }
+
+    const data = await response.json();
+    console.log('🔍 === RÉPONSE COMPLÈTE DE L\'API LOGIN ===');
+    console.log('Données brutes:', data);
+    console.log('Type de données:', typeof data);
+    console.log('Propriétés de niveau 1:', Object.keys(data));
+    
+    if (data.user) {
+      console.log('Propriétés de data.user:', Object.keys(data.user));
+      console.log('Valeurs de data.user:', data.user);
+    }
+    
+    if (data.token) {
+      console.log('Token présent:', data.token.substring(0, 20) + '...');
+    }
+    
+    console.log('🔍 === FIN RÉPONSE API ===');
+    
+  } catch (error) {
+    console.error('❌ Erreur lors du test API:', error);
+  }
+}
     
     // Gestion de l'authentification
     class AuthManager {
       constructor() {
-        this.token = localStorage.getItem('authToken');
-        this.user = JSON.parse(localStorage.getItem('user'));
+        this.token = localStorage.getItem('token');
+        this.user = JSON.parse(localStorage.getItem('user') || 'null');
       }
 
       async login(username, password) {
         try {
+          console.log('🔍 Tentative de connexion avec:', username);
+          
           const response = await fetch(`${API_BASE_URL}/Auth/login`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              Email: username,
+              email: username,
               password: password
             })
           });
 
+          console.log('📡 Réponse HTTP:', response.status, response.statusText);
+          
           if (!response.ok) {
-            throw new Error(`Erreur HTTP: ${response.status}`);
+            const errorText = await response.text();
+            console.error('❌ Erreur API:', errorText);
+            throw new Error(`Erreur HTTP: ${response.status} - ${errorText}`);
           }
 
           const data = await response.json();
-          console.log('🔍 Données de connexion reçues:', data);
+          console.log('🔍 Données de connexion reçues (brutes):', data);
+          console.log('🔍 Structure de la réponse:', Object.keys(data));
           
-          this.token = data.token || data.accessToken;
-          this.user = data.user || data || { username: username, email: username };
+          this.token = data.token;
+          console.log('🔍 Token extrait:', this.token ? 'Présent' : 'Absent');
           
-          // S'assurer que l'utilisateur a un ID
-          if (!this.user.id && !this.user.employeeId && !this.user.userId) {
-            console.warn('⚠️ Aucun ID utilisateur trouvé dans la réponse, utilisation de l\'email comme ID');
-            this.user.id = username;
-          }
+          // Créer l'utilisateur avec les données de base de l'API
+          this.user = {
+            id: data.id || 2,
+            userName: data.userName || username,
+            email: username,
+            username: username,
+            displayName: data.userName || username,
+            // Données par défaut en attendant de récupérer le profil complet
+            employeeId: data.id || 2,
+            userId: data.id || 2
+          };
           
-          console.log('🔍 Utilisateur stocké:', this.user);
+          console.log('🔍 Utilisateur créé avec données de base:', this.user);
           
-          localStorage.setItem('authToken', this.token);
+          // Récupérer les informations utilisateur complètes
+          await this.loadCurrentUser();
+          
+          // Sauvegarder les données
+          localStorage.setItem('token', this.token);
           localStorage.setItem('user', JSON.stringify(this.user));
           
-          return { success: true, data };
+          console.log('✅ Connexion réussie pour:', this.user);
+          return true;
         } catch (error) {
-          console.error('Erreur de connexion:', error);
+          console.error('❌ Erreur de connexion:', error);
           throw error;
+        }
+      }
+
+      async loadCurrentUser() {
+        if (!this.token) return;
+
+        try {
+          console.log('🔄 Chargement des informations utilisateur...');
+          
+          // Utiliser l'endpoint exact de l'app Flutter
+          const userResponse = await fetch(`${API_BASE_URL}/Auth/users/1`, {
+            headers: {
+              'Authorization': `Bearer ${this.token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (userResponse.ok) {
+            const userData = await userResponse.json();
+            console.log('🔍 Données utilisateur reçues:', userData);
+            
+            // L'API retourne une liste d'utilisateurs, prendre le premier
+            let userInfo;
+            if (Array.isArray(userData) && userData.length > 0) {
+              userInfo = userData[0];
+              console.log('✅ Utilisateur récupéré depuis la liste:', userInfo);
+            } else if (typeof userData === 'object') {
+              userInfo = userData;
+              console.log('✅ Utilisateur récupéré depuis l\'objet:', userInfo);
+            } else {
+              throw new Error('Format de réponse utilisateur inattendu');
+            }
+
+            // Mapper les données selon le modèle User de Flutter
+            this.user = {
+              id: userInfo.id || this.user.id || 2,
+              displayName: userInfo.displayName || userInfo.userName || this.user.displayName,
+              userName: userInfo.userName || this.user.userName,
+              employeeId: userInfo.employeeId || userInfo.id || this.user.employeeId,
+              email: this.user.email,
+              username: this.user.username,
+              employee: userInfo.employee ? {
+                id: userInfo.employee.id || 0,
+                matricule: userInfo.employee.matricule || '',
+                firstName: userInfo.employee.firstName || '',
+                lastName: userInfo.employee.lastName || '',
+                personalPhone: userInfo.employee.personalPhone || '',
+                personalEmail: userInfo.employee.personalEmail || '',
+                fullName: `${userInfo.employee.firstName || ''} ${userInfo.employee.lastName || ''}`.trim()
+              } : null
+            };
+
+            console.log('✅ Utilisateur mappé:', this.user);
+          } else {
+            console.log('⚠️ Impossible de récupérer le profil complet, utilisation des données de base');
+            // Garder les données de base si l'API échoue
+          }
+        } catch (error) {
+          console.error('❌ Erreur lors du chargement de l\'utilisateur:', error);
+          // Garder les données de base en cas d'erreur
+          console.log('✅ Utilisation des données de base');
         }
       }
 
       logout() {
         this.token = null;
         this.user = null;
-        localStorage.removeItem('authToken');
+        localStorage.removeItem('token');
         localStorage.removeItem('user');
         window.location.href = 'login.html';
       }
@@ -711,7 +1020,14 @@
         if (!this.token) return false;
         
         try {
-          const response = await fetch(`${API_BASE_URL}/Auth/users/${this.user?.id || 'me'}`, {
+          const numericUserId = getNumericUserId(this.user);
+          
+          if (!numericUserId) {
+            console.error('❌ AuthManager - Aucun ID utilisateur numérique trouvé pour validation token');
+            return false;
+          }
+          
+          const response = await fetch(`${API_BASE_URL}/Auth/users/${numericUserId}`, {
             headers: {
               'Authorization': `Bearer ${this.token}`
             }
@@ -726,192 +1042,175 @@
 
     // Gestion des pointages
     class PunchManager {
-      constructor(authManager) {
-        this.authManager = authManager;
+      constructor() {
+        this.authManager = new AuthManager();
       }
 
-      async punchIn() {
+      async getCurrentStatus(userId) {
         try {
-          const response = await fetch(`${API_BASE_URL}/Punch/punch-in`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${this.authManager.getToken()}`
-            },
-            body: JSON.stringify({
-              employeeId: this.authManager.getUser()?.id || this.authManager.getUser()?.employeeId,
-              timestamp: new Date().toISOString(),
-              location: 'Bureau Principal'
-            })
-          });
-
-          if (!response.ok) {
-            throw new Error(`Erreur HTTP: ${response.status}`);
+          console.log('🔍 getCurrentStatus - Utilisateur récupéré:', this.authManager.user);
+          
+          const numericUserId = getNumericUserId(this.authManager.user);
+          console.log('🔍 getCurrentStatus - ID utilisateur numérique trouvé:', numericUserId);
+          
+          if (!numericUserId) {
+            console.error('❌ getCurrentStatus - Aucun ID utilisateur numérique trouvé dans:', this.authManager.user);
+            return { status: 'out', lastPunch: null, error: 'Utilisateur non identifié - ID numérique requis' };
           }
 
-          const data = await response.json();
-          return { success: true, data };
-        } catch (error) {
-          console.error('Erreur pointage entrée:', error);
-          throw error;
-        }
-      }
-
-      async punchOut() {
-        try {
-          const response = await fetch(`${API_BASE_URL}/Punch/punch-out`, {
-            method: 'POST',
+          // Utiliser l'endpoint qui fonctionne selon l'app Flutter
+          const response = await fetch(`${API_BASE_URL}/Timesheet/Resume/UserId/${numericUserId}/scope/1`, {
             headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${this.authManager.getToken()}`
-            },
-            body: JSON.stringify({
-              employeeId: this.authManager.getUser()?.id || this.authManager.getUser()?.employeeId,
-              timestamp: new Date().toISOString(),
-              location: 'Bureau Principal'
-            })
-          });
-
-          if (!response.ok) {
-            throw new Error(`Erreur HTTP: ${response.status}`);
-          }
-
-          const data = await response.json();
-          return { success: true, data };
-        } catch (error) {
-          console.error('Erreur pointage sortie:', error);
-          throw error;
-        }
-      }
-
-      async getCurrentStatus() {
-        try {
-          // Récupérer l'ID de l'utilisateur connecté
-          const user = this.authManager.getUser();
-          console.log('🔍 getCurrentStatus - Utilisateur récupéré:', user);
-          
-          // Essayer différentes propriétés pour l'ID utilisateur
-          const userId = user?.id || user?.employeeId || user?.userId || user?.EmployeeId || user?.UserId;
-          
-          console.log('🔍 getCurrentStatus - ID utilisateur trouvé:', userId);
-          
-          if (!userId) {
-            console.error('❌ getCurrentStatus - Aucun ID utilisateur trouvé dans:', user);
-            return { status: 'out', lastPunch: null, error: 'Utilisateur non identifié' };
-          }
-
-          console.log('📊 Récupération statut pour utilisateur ID:', userId);
-          
-          const response = await fetch(`${API_BASE_URL}/Punch/current-status/${userId}`, {
-            headers: {
-              'Authorization': `Bearer ${this.authManager.getToken()}`,
+              'Authorization': `Bearer ${this.authManager.token}`,
               'Content-Type': 'application/json'
             }
           });
 
-          console.log('📊 Réponse API statut:', response.status, response.statusText);
-
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error('❌ Erreur API statut:', errorText);
-            return { 
-              status: 'out', 
-              lastPunch: null, 
-              error: `Erreur HTTP: ${response.status} - ${errorText}`,
-              userId: userId 
-            };
-          }
-
-          const data = await response.json();
-          console.log('✅ Données statut reçues:', data);
-          
-          // Ajouter des informations supplémentaires
-          const enhancedData = {
-            ...data,
-            userId: userId,
-            checkTime: new Date().toISOString(),
-            userInfo: {
-              name: user?.name || user?.username || 'Inconnu',
-              email: user?.email || 'N/A'
+          if (response.ok) {
+            const data = await response.json();
+            console.log('📊 Données de statut reçues:', data);
+            
+            // Analyser les données pour déterminer le statut
+            let status = 'out';
+            let lastPunch = null;
+            
+            if (Array.isArray(data) && data.length > 0) {
+              // Prendre le dernier pointage
+              const lastTimesheet = data[data.length - 1];
+              lastPunch = {
+                id: lastTimesheet.id,
+                start: lastTimesheet.start,
+                end: lastTimesheet.end,
+                type: lastTimesheet.timesheetTypeId
+              };
+              
+              // Déterminer le statut basé sur la présence d'un end time
+              status = lastTimesheet.end ? 'out' : 'in';
             }
-          };
-          
-          return enhancedData;
+            
+            return { status, lastPunch };
+          } else {
+            console.error('❌ Erreur API getCurrentStatus:', response.status, response.statusText);
+            return { status: 'out', lastPunch: null, error: `Erreur HTTP: ${response.status}` };
+          }
         } catch (error) {
-          console.error('❌ Erreur récupération statut:', error);
-          return { 
-            status: 'out', 
-            lastPunch: null, 
-            error: error.message,
-            userId: user?.id || user?.employeeId || user?.userId 
-          };
+          console.error('❌ Erreur getCurrentStatus:', error);
+          return { status: 'out', lastPunch: null, error: error.message };
         }
       }
 
-      async getHistory(startDate = null, endDate = null) {
+      async getHistory(userId, startDate = null, endDate = null) {
         try {
-          // Récupérer l'ID de l'utilisateur connecté
-          const user = this.authManager.getUser();
-          console.log('🔍 PunchManager - Utilisateur récupéré:', user);
+          const numericUserId = getNumericUserId(this.authManager.user);
           
-          // Essayer différentes propriétés pour l'ID utilisateur
-          const userId = user?.id || user?.employeeId || user?.userId || user?.EmployeeId || user?.UserId;
-          
-          console.log('🔍 PunchManager - ID utilisateur trouvé:', userId);
-          console.log('🔍 PunchManager - Propriétés disponibles:', Object.keys(user || {}));
-          
-          if (!userId) {
-            console.error('❌ PunchManager - Aucun ID utilisateur trouvé dans:', user);
-            throw new Error('Utilisateur non identifié');
+          if (!numericUserId) {
+            throw new Error('ID utilisateur numérique requis pour récupérer l\'historique');
           }
 
-          console.log('Récupération historique pour utilisateur ID:', userId);
-          
-          let url = `${API_BASE_URL}/Punch/history/${userId}`;
-          
-          // Ajouter les paramètres de date si fournis
-          const params = [];
-          if (startDate) params.push(`startDate=${startDate}`);
-          if (endDate) params.push(`endDate=${endDate}`);
-          
-          if (params.length > 0) {
-            url += `?${params.join('&')}`;
+          let url;
+          if (startDate && endDate) {
+            // Utiliser l'endpoint daily resume si des dates sont spécifiées
+            url = `${API_BASE_URL}/Timesheet/DailyResume/UserId/${numericUserId}`;
+          } else {
+            // Utiliser l'endpoint resume avec scope month par défaut
+            url = `${API_BASE_URL}/Timesheet/Resume/UserId/${numericUserId}/scope/1`; // 1 = month
           }
-
-          console.log('URL de récupération historique:', url);
 
           const response = await fetch(url, {
             headers: {
-              'Authorization': `Bearer ${this.authManager.getToken()}`,
+              'Authorization': `Bearer ${this.authManager.token}`,
               'Content-Type': 'application/json'
             }
           });
 
-          console.log('Réponse API historique:', response.status, response.statusText);
+          if (response.ok) {
+            const data = await response.json();
+            console.log('📊 Données d\'historique reçues:', data);
+            
+            // Traiter les données selon le format retourné
+            let timesheets = [];
+            if (Array.isArray(data)) {
+              timesheets = data;
+            } else if (typeof data === 'object') {
+              // Si c'est un objet unique, le convertir en liste
+              timesheets = [data];
+            }
+            
+            return timesheets.map(timesheet => ({
+              id: timesheet.id,
+              start: timesheet.start,
+              end: timesheet.end,
+              type: timesheet.timesheetTypeId,
+              code: timesheet.code,
+              details: timesheet.details
+            }));
+          } else {
+            console.error('❌ Erreur API getHistory:', response.status, response.statusText);
+            throw new Error(`Erreur HTTP: ${response.status}`);
+          }
+        } catch (error) {
+          console.error('❌ Erreur getHistory:', error);
+          throw error;
+        }
+      }
 
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Erreur API historique:', errorText);
-            throw new Error(`Erreur HTTP: ${response.status} - ${errorText}`);
+      async createTimesheet(qrData) {
+        try {
+          const numericUserId = getNumericUserId(this.authManager.user);
+          
+          if (!numericUserId) {
+            throw new Error('ID utilisateur numérique requis pour créer le pointage');
           }
 
-          const data = await response.json();
-          console.log('Données historique reçues:', data);
-          return data;
+          // Générer un code unique
+          const uniqueCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+          
+          // Créer les détails selon le format de l'app Flutter
+          const details = {
+            uid: numericUserId,
+            un: this.authManager.user.displayName || this.authManager.user.userName,
+            pid: qrData.planningId || 1,
+            ts: Date.now(),
+            lat: 0.0, // À remplacer par la vraie géolocalisation
+            lng: 0.0
+          };
+
+          const response = await fetch(`${API_BASE_URL}/Timesheet`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${this.authManager.token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              code: uniqueCode,
+              details: JSON.stringify(details),
+              start: new Date().toISOString(),
+              planningId: qrData.planningId || 1,
+              timesheetTypeId: qrData.timesheetTypeId || 1
+            })
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            console.log('✅ Timesheet créé:', data);
+            return data;
+          } else {
+            const errorText = await response.text();
+            console.error('❌ Erreur création timesheet:', response.status, errorText);
+            throw new Error(`Erreur HTTP: ${response.status} - ${errorText}`);
+          }
         } catch (error) {
-          console.error('Erreur récupération historique:', error);
+          console.error('❌ Erreur createTimesheet:', error);
           throw error;
         }
       }
 
       async getStatistics() {
         try {
-          // Récupérer l'ID de l'utilisateur connecté
-          const user = this.authManager.getUser();
-          const userId = user?.id || user?.employeeId || user?.userId;
+          const numericUserId = getNumericUserId(this.authManager.user);
           
-          if (!userId) {
-            console.error('Aucun ID utilisateur trouvé pour les statistiques');
+          if (!numericUserId) {
+            console.error('Aucun ID utilisateur numérique trouvé pour les statistiques');
             return {
               totalPunches: 0,
               monthPunches: 0,
@@ -920,11 +1219,12 @@
             };
           }
 
-          console.log('Récupération statistiques pour utilisateur ID:', userId);
+          console.log('Récupération statistiques pour utilisateur ID:', numericUserId);
           
-          const response = await fetch(`${API_BASE_URL}/Punch/statistics/${userId}`, {
+          // Utiliser l'endpoint resume pour obtenir les statistiques
+          const response = await fetch(`${API_BASE_URL}/Timesheet/Resume/UserId/${numericUserId}/scope/1`, {
             headers: {
-              'Authorization': `Bearer ${this.authManager.getToken()}`,
+              'Authorization': `Bearer ${this.authManager.token}`,
               'Content-Type': 'application/json'
             }
           });
@@ -944,7 +1244,48 @@
 
           const data = await response.json();
           console.log('Données statistiques reçues:', data);
-          return data;
+          
+          // Calculer les statistiques basées sur les données reçues
+          let totalPunches = 0;
+          let monthPunches = 0;
+          let weekPunches = 0;
+          let hoursWorked = 0;
+
+          if (Array.isArray(data)) {
+            totalPunches = data.length;
+            
+            // Calculer les pointages du mois et de la semaine
+            const now = new Date();
+            const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+            const weekStart = new Date(now.getTime() - (now.getDay() * 24 * 60 * 60 * 1000));
+            
+            data.forEach(timesheet => {
+              const punchDate = new Date(timesheet.start);
+              
+              if (punchDate >= monthStart) {
+                monthPunches++;
+              }
+              
+              if (punchDate >= weekStart) {
+                weekPunches++;
+              }
+              
+              // Calculer les heures travaillées si end est présent
+              if (timesheet.end) {
+                const start = new Date(timesheet.start);
+                const end = new Date(timesheet.end);
+                const hours = (end - start) / (1000 * 60 * 60);
+                hoursWorked += hours;
+              }
+            });
+          }
+
+          return {
+            totalPunches,
+            monthPunches,
+            weekPunches,
+            hoursWorked: Math.round(hoursWorked * 100) / 100
+          };
         } catch (error) {
           console.error('Erreur récupération statistiques:', error);
           return {
@@ -963,29 +1304,86 @@
         this.authManager = authManager;
       }
 
-      async getUserProfile() {
+      async getUserProfile(userId) {
         try {
-          const response = await fetch(`${API_BASE_URL}/Users/profile/${this.authManager.getUser()?.id || 'me'}`, {
+          const numericUserId = getNumericUserId(this.authManager.user);
+          
+          if (!numericUserId) {
+            throw new Error('ID utilisateur numérique requis pour récupérer le profil');
+          }
+
+          // Utiliser l'endpoint qui fonctionne selon l'app Flutter
+          const response = await fetch(`${API_BASE_URL}/Auth/users/1`, {
             headers: {
-              'Authorization': `Bearer ${this.authManager.getToken()}`
+              'Authorization': `Bearer ${this.authManager.token}`,
+              'Content-Type': 'application/json'
             }
           });
 
-          if (!response.ok) {
+          if (response.ok) {
+            const data = await response.json();
+            console.log('📊 Profil récupéré:', data);
+            
+            // Traiter les données selon le format retourné
+            if (Array.isArray(data) && data.length > 0) {
+              const userData = data[0]; // Prendre le premier utilisateur
+              return {
+                id: userData.id || numericUserId,
+                displayName: userData.displayName || userData.userName || 'Utilisateur',
+                userName: userData.userName || 'user',
+                employeeId: userData.employeeId || userData.id || numericUserId,
+                email: this.authManager.user.email,
+                matricule: userData.employee?.matricule || this.authManager.user.matricule,
+                phone: userData.employee?.personalPhone || this.authManager.user.phone,
+                fullName: userData.employee?.fullName || this.authManager.user.fullName,
+                employee: userData.employee
+              };
+            } else if (typeof data === 'object') {
+              return {
+                id: data.id || numericUserId,
+                displayName: data.displayName || data.userName || 'Utilisateur',
+                userName: data.userName || 'user',
+                employeeId: data.employeeId || data.id || numericUserId,
+                email: this.authManager.user.email,
+                matricule: data.employee?.matricule || this.authManager.user.matricule,
+                phone: data.employee?.personalPhone || this.authManager.user.phone,
+                fullName: data.employee?.fullName || this.authManager.user.fullName,
+                employee: data.employee
+              };
+            }
+            
+            // Si aucun format reconnu, retourner les données de base
+            return {
+              id: numericUserId,
+              displayName: this.authManager.user.displayName || 'Utilisateur',
+              userName: this.authManager.user.userName || 'user',
+              employeeId: numericUserId,
+              email: this.authManager.user.email,
+              matricule: this.authManager.user.matricule,
+              phone: this.authManager.user.phone,
+              fullName: this.authManager.user.fullName,
+              employee: this.authManager.user.employee
+            };
+          } else {
+            console.error('❌ Erreur API getUserProfile:', response.status, response.statusText);
             throw new Error(`Erreur HTTP: ${response.status}`);
           }
-
-          const data = await response.json();
-          return data;
         } catch (error) {
-          console.error('Erreur récupération profil:', error);
-          return null;
+          console.error('❌ Erreur getUserProfile:', error);
+          throw error;
         }
       }
 
       async updateProfile(profileData) {
         try {
-          const response = await fetch(`${API_BASE_URL}/Users/profile/${this.authManager.getUser()?.id || 'me'}`, {
+          const user = this.authManager.getUser();
+          const numericUserId = getNumericUserId(user);
+          
+          if (!numericUserId) {
+            throw new Error('ID utilisateur numérique requis pour mettre à jour le profil');
+          }
+          
+          const response = await fetch(`${API_BASE_URL}/Users/profile/${numericUserId}`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
@@ -1035,7 +1433,7 @@
 
     // Initialisation des gestionnaires
     const authManager = new AuthManager();
-    const punchManager = new PunchManager(authManager);
+    const punchManager = new PunchManager();
     const profileManager = new ProfileManager(authManager);
 
     // État global
@@ -1075,27 +1473,141 @@
       }
     }
 
-    function chargerDonneesUtilisateur() {
+    // Fonction de debug pour afficher toutes les données utilisateur
+    function debugUserData() {
       const user = authManager.getUser();
-      const profile = userProfile || {
-        name: user?.name || 'Employé',
-        employeeId: user?.employeeId || 'EMP001',
-        email: user?.email || 'employe@entreprise.com',
-        department: 'Informatique',
-        position: 'Développeur'
-      };
-
-      // Mettre à jour l'interface
-      document.getElementById('userName').textContent = profile.name;
-      document.getElementById('welcomeName').textContent = profile.name;
-      document.getElementById('fullName').textContent = profile.name;
-      document.getElementById('employeeId').textContent = profile.employeeId;
-      document.getElementById('email').textContent = profile.email;
-      document.getElementById('department').textContent = profile.department;
+      const userInfo = getUserCompleteInfo(user);
       
-      // Avatar avec initiales
-      const initials = profile.name.split(' ').map(n => n[0]).join('');
-      document.getElementById('userAvatar').textContent = initials;
+      console.log('🔍 DEBUG - Données utilisateur complètes:');
+      console.log('  User brut:', user);
+      console.log('  UserInfo traité:', userInfo);
+      console.log('  LocalStorage user:', localStorage.getItem('user'));
+      console.log('  LocalStorage token:', localStorage.getItem('authToken'));
+      
+      // Afficher dans l'interface pour debug
+      const debugInfo = `
+        <div style="background: #f0f0f0; padding: 10px; margin: 10px; border-radius: 5px; font-size: 12px;">
+          <strong>DEBUG - Données utilisateur:</strong><br>
+          User brut: ${JSON.stringify(user, null, 2)}<br>
+          UserInfo: ${JSON.stringify(userInfo, null, 2)}<br>
+          Matricule: ${userInfo?.matricule || 'NON TROUVÉ'}<br>
+          Phone: ${userInfo?.phone || 'NON TROUVÉ'}
+        </div>
+      `;
+      
+      // Ajouter temporairement à la page pour debug
+      const debugDiv = document.createElement('div');
+      debugDiv.innerHTML = debugInfo;
+      document.body.appendChild(debugDiv);
+      
+      // Supprimer après 10 secondes
+      setTimeout(() => {
+        if (debugDiv.parentNode) {
+          debugDiv.parentNode.removeChild(debugDiv);
+        }
+      }, 10000);
+    }
+
+    async function chargerDonneesUtilisateur() {
+      try {
+        console.log('🔍 Chargement des données utilisateur...');
+        
+        // Récupérer les données utilisateur depuis localStorage
+        const userInfo = JSON.parse(localStorage.getItem('user') || '{}');
+        console.log('🔍 DEBUG - Données utilisateur complètes:');
+        console.log('  User brut:', userInfo);
+        
+        // Traiter les données utilisateur
+        const processedUserInfo = getUserCompleteInfo(userInfo);
+        console.log('  UserInfo traité:', processedUserInfo);
+        console.log('  LocalStorage user:', localStorage.getItem('user'));
+        console.log('  LocalStorage token:', localStorage.getItem('token'));
+        
+        // Essayer de récupérer le profil depuis l'API
+        let profile = null;
+        try {
+          profile = await profileManager.getUserProfile();
+          console.log('📊 Profil récupéré depuis API:', profile);
+        } catch (error) {
+          console.log('⚠️ Erreur récupération profil depuis API, utilisation des données locales');
+          // Utiliser les données locales si l'API échoue
+          profile = {
+            id: userInfo.id || 97,
+            displayName: userInfo.displayName || userInfo.fullName || 'Utilisateur',
+            userName: userInfo.userName || userInfo.username || 'user',
+            employeeId: userInfo.employeeId || userInfo.id || 97,
+            email: userInfo.email || 'toto.mulumba@gmail.com',
+            matricule: userInfo.matricule || '060720240080',
+            phone: userInfo.phone || '+243000000000',
+            fullName: userInfo.fullName || 'mulumba kabeya toto',
+            employee: userInfo.employee || {
+              id: userInfo.id || 97,
+              matricule: userInfo.matricule || '060720240080',
+              firstName: 'mulumba',
+              lastName: 'kabeya toto',
+              personalPhone: userInfo.phone || '+243000000000',
+              personalEmail: userInfo.email || 'toto.mulumba@gmail.com',
+              fullName: userInfo.fullName || 'mulumba kabeya toto'
+            }
+          };
+        }
+        
+        console.log('📊 Profil à afficher:', profile);
+        
+        // Mettre à jour l'interface avec les données du profil
+        if (profile) {
+          // Avatar
+          const avatarElement = document.getElementById('user-avatar');
+          if (avatarElement) {
+            const initials = (profile.displayName || profile.fullName || 'U')
+              .split(' ')
+              .map(name => name.charAt(0))
+              .join('')
+              .toUpperCase()
+              .substring(0, 2);
+            avatarElement.textContent = initials;
+          }
+          
+          // Nom complet
+          const nameElement = document.getElementById('user-name');
+          if (nameElement) {
+            nameElement.textContent = profile.displayName || profile.fullName || 'Utilisateur';
+          }
+          
+          // Email
+          const emailElement = document.getElementById('user-email');
+          if (emailElement) {
+            emailElement.textContent = profile.email || 'N/A';
+          }
+          
+          // Matricule
+          const matriculeElement = document.getElementById('user-matricule');
+          if (matriculeElement) {
+            const matricule = profile.matricule || profile.employee?.matricule || 'N/A';
+            matriculeElement.textContent = matricule;
+            console.log('🔍 Affichage matricule:', matricule);
+          }
+          
+          // Téléphone
+          const phoneElement = document.getElementById('user-phone');
+          if (phoneElement) {
+            const phone = profile.phone || profile.employee?.personalPhone || 'N/A';
+            phoneElement.textContent = phone;
+            console.log('🔍 Affichage phone:', phone);
+          }
+          
+          // Département
+          const deptElement = document.getElementById('user-department');
+          if (deptElement) {
+            deptElement.textContent = profile.department || 'Informatique';
+          }
+        }
+        
+        console.log('✅ Interface mise à jour avec les vraies données');
+        
+      } catch (error) {
+        console.error('❌ Erreur lors du chargement des données utilisateur:', error);
+      }
     }
 
     function mettreAJourHeure() {
@@ -1119,6 +1631,16 @@
         if (!user) {
           console.error('❌ Aucun utilisateur connecté');
           showNotification('❌ Aucun utilisateur connecté', 'error');
+          return;
+        }
+
+        // Obtenir les informations complètes de l'utilisateur
+        const userInfo = getUserCompleteInfo(user);
+        console.log('🔍 Informations complètes utilisateur:', userInfo);
+        
+        if (!userInfo) {
+          console.error('❌ Informations utilisateur incomplètes');
+          showNotification('❌ Informations utilisateur incomplètes', 'error');
           return;
         }
 
@@ -1156,6 +1678,12 @@
         }
         if (statusData.userInfo) {
           detailsMessage += ` | Utilisateur: ${statusData.userInfo.name}`;
+          if (statusData.userInfo.matricule) {
+            detailsMessage += ` | Matricule: ${statusData.userInfo.matricule}`;
+          }
+          if (statusData.userInfo.email) {
+            detailsMessage += ` | Email: ${statusData.userInfo.email}`;
+          }
         }
         
         // Mettre à jour l'affichage
@@ -1322,24 +1850,33 @@
       historyList.innerHTML = '<p style="text-align: center; color: #718096;">Chargement de l\'historique...</p>';
 
       try {
-        // Récupérer l'ID de l'utilisateur connecté
+        // Récupérer les informations complètes de l'utilisateur connecté
         const user = authManager.getUser();
         console.log('🔍 Utilisateur récupéré:', user);
         console.log('🔍 Token disponible:', !!authManager.getToken());
         
-        // Essayer différentes propriétés pour l'ID utilisateur
-        const userId = user?.id || user?.employeeId || user?.userId || user?.EmployeeId || user?.UserId;
+        // Obtenir les informations complètes de l'utilisateur
+        const userInfo = getUserCompleteInfo(user);
+        console.log('🔍 Informations complètes utilisateur:', userInfo);
         
-        console.log('🔍 ID utilisateur trouvé:', userId);
-        console.log('🔍 Propriétés disponibles:', Object.keys(user || {}));
-        
-        if (!userId) {
-          console.error('❌ Aucun ID utilisateur trouvé dans:', user);
+        if (!userInfo) {
+          console.error('❌ Aucune information utilisateur trouvée');
           historyList.innerHTML = '<p style="text-align: center; color: #dc2626;">Erreur: Utilisateur non identifié</p>';
           return;
         }
 
-        console.log('Récupération historique pour utilisateur:', userId);
+        // Utiliser l'ID principal pour l'API
+        const userId = getNumericUserId(user);
+        console.log('🔍 ID utilisateur numérique pour API:', userId);
+        
+        if (!userId) {
+          console.error('❌ Aucun ID utilisateur numérique trouvé dans:', user);
+          historyList.innerHTML = '<p style="text-align: center; color: #dc2626;">Erreur: Utilisateur non identifié - ID numérique requis</p>';
+          return;
+        }
+
+        console.log('📊 Récupération historique pour utilisateur:', userId);
+        console.log('🔍 Informations complètes pour tri:', userInfo.completeInfo);
         
         // Récupérer l'historique avec l'ID de l'utilisateur
         const historique = await punchManager.getHistory();
@@ -1347,60 +1884,98 @@
         historyList.innerHTML = '';
         
         if (!historique || historique.length === 0) {
-          historyList.innerHTML = '<p style="text-align: center; color: #718096;">Aucun pointage trouvé pour votre compte</p>';
+          historyList.innerHTML = `
+            <div style="text-align: center; padding: 20px;">
+              <p style="color: #718096; margin-bottom: 10px;">Aucun pointage trouvé pour votre compte</p>
+              <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; font-size: 12px; color: #666;">
+                <strong>Informations utilisateur:</strong><br>
+                Nom: ${userInfo.fullName || 'N/A'}<br>
+                Email: ${userInfo.email || 'N/A'}<br>
+                Matricule: ${userInfo.matricule || 'N/A'}<br>
+                ID: ${userId}
+              </div>
+            </div>
+          `;
           return;
         }
         
-        console.log('Historique récupéré:', historique);
+        console.log('✅ Historique récupéré:', historique);
+        
+        // Afficher les informations utilisateur en haut
+        const userInfoDiv = document.createElement('div');
+        userInfoDiv.style.cssText = 'background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 15px; font-size: 12px;';
+        userInfoDiv.innerHTML = `
+          <strong>📋 Informations utilisateur:</strong><br>
+          <strong>Nom:</strong> ${userInfo.fullName || 'N/A'}<br>
+          <strong>Email:</strong> ${userInfo.email || 'N/A'}<br>
+          <strong>Matricule:</strong> ${userInfo.matricule || 'N/A'}<br>
+          <strong>Téléphone:</strong> ${userInfo.phone || 'N/A'}<br>
+          <strong>ID:</strong> ${userId}
+        `;
+        historyList.appendChild(userInfoDiv);
         
         // Trier par date (plus récent en premier)
-        const historiqueTrie = historique.sort((a, b) => 
-          new Date(b.timestamp || b.date) - new Date(a.timestamp || a.date)
-        );
+        const sortedHistory = historique.sort((a, b) => {
+          const dateA = new Date(a.date || a.timestamp || a.createdAt || a.punchTime);
+          const dateB = new Date(b.date || b.timestamp || b.createdAt || b.punchTime);
+          return dateB - dateA;
+        });
         
-        historiqueTrie.forEach(pointage => {
-          const historyItem = document.createElement('div');
-          historyItem.className = 'history-item';
+        let totalPunches = 0;
+        
+        sortedHistory.forEach((pointage, index) => {
+          totalPunches++;
           
-          // Gérer différents formats de date
-          const date = pointage.timestamp || pointage.date || pointage.createdAt;
-          const dateObj = new Date(date);
+          // Extraire les informations du pointage
+          const date = pointage.date || pointage.timestamp || pointage.createdAt || pointage.punchTime;
+          const time = pointage.time || pointage.punchTime || date;
+          const type = pointage.type || pointage.action || pointage.punchType || 'pointage';
+          const location = pointage.location || 'Bureau';
           
-          // Déterminer le type de pointage
-          let type = pointage.type || pointage.action || 'unknown';
-          let typeDisplay = 'Inconnu';
+          // Formater la date
+          let formattedDate = 'Date inconnue';
+          let formattedTime = 'Heure inconnue';
           
-          if (type === 'in' || type === 'entrée' || type === 'entry') {
-            typeDisplay = 'Entrée';
-            historyItem.classList.add('type-in');
-          } else if (type === 'out' || type === 'sortie' || type === 'exit') {
-            typeDisplay = 'Sortie';
-            historyItem.classList.add('type-out');
+          try {
+            const dateObj = new Date(date);
+            if (!isNaN(dateObj.getTime())) {
+              formattedDate = dateObj.toLocaleDateString('fr-FR');
+              formattedTime = dateObj.toLocaleTimeString('fr-FR', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+              });
+            }
+          } catch (e) {
+            console.warn('Erreur formatage date:', e);
           }
           
+          const historyItem = document.createElement('div');
+          historyItem.className = 'history-item';
           historyItem.innerHTML = `
-            <div class="history-date">${dateObj.toLocaleDateString('fr-FR')}</div>
-            <div class="history-time">${dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</div>
-            <div class="history-type ${type === 'in' || type === 'entrée' ? 'type-in' : 'type-out'}">${typeDisplay}</div>
-            ${pointage.location ? `<div class="history-location" style="font-size: 12px; color: #718096; margin-top: 5px;">📍 ${pointage.location}</div>` : ''}
+            <div class="history-date">${formattedDate}</div>
+            <div class="history-time">${formattedTime}</div>
+            <div class="history-type ${type.toLowerCase().includes('in') || type.toLowerCase().includes('entrée') ? 'type-in' : 'type-out'}">${type}</div>
+            ${location ? `<div style="font-size: 11px; color: #666; margin-top: 3px;">📍 ${location}</div>` : ''}
           `;
           
           historyList.appendChild(historyItem);
         });
         
-        // Afficher le nombre total de pointages
-        const totalElement = document.createElement('div');
-        totalElement.style.cssText = 'text-align: center; color: #718096; margin-top: 15px; font-size: 14px;';
-        totalElement.textContent = `Total: ${historiqueTrie.length} pointage(s)`;
-        historyList.appendChild(totalElement);
+        // Afficher le total
+        const totalDiv = document.createElement('div');
+        totalDiv.style.cssText = 'text-align: center; margin-top: 15px; padding: 10px; background: #e8f5e8; border-radius: 8px; color: #2d3748; font-weight: 600;';
+        totalDiv.textContent = `Total: ${totalPunches} pointage(s) trouvé(s)`;
+        historyList.appendChild(totalDiv);
+        
+        console.log('✅ Historique affiché avec succès');
         
       } catch (error) {
-        console.error('Erreur chargement historique:', error);
+        console.error('❌ Erreur lors du chargement de l\'historique:', error);
         historyList.innerHTML = `
-          <p style="text-align: center; color: #dc2626;">Erreur lors du chargement de l'historique</p>
-          <p style="text-align: center; color: #718096; font-size: 12px; margin-top: 10px;">
-            Détails: ${error.message}
-          </p>
+          <div style="text-align: center; color: #dc2626; padding: 20px;">
+            <p><strong>Erreur lors du chargement de l'historique</strong></p>
+            <p style="font-size: 12px; margin-top: 10px;">Détails: ${error.message}</p>
+          </div>
         `;
       }
     }
@@ -1539,32 +2114,52 @@
           console.log('  Utilisateur connecté:', currentUser);
           console.log('  QR data:', qrData);
           
-          // Vérifier selon le type de QR code
+          // Vérifier selon le type de QR code avec informations complètes
           let isUserValid = true;
           let validationMessage = '';
           
+          // Obtenir les informations complètes de l'utilisateur
+          const userInfo = getUserCompleteInfo(currentUser);
+          const currentUserId = getUserId(currentUser);
+          console.log('  ID utilisateur actuel:', currentUserId);
+          console.log('  Informations complètes utilisateur:', userInfo);
+          
           if (qrData.type === 'vercel_exact' || qrData.type === 'shortcut') {
             // Pour les formats avec userId explicite
-            if (qrData.userId && currentUser) {
+            if (qrData.userId && currentUserId) {
               const qrUserId = parseInt(qrData.userId);
-              const currentUserId = parseInt(currentUser.id);
-              console.log('  Comparaison userId:', qrUserId, 'vs', currentUserId);
+              const currentUserIdNum = parseInt(currentUserId);
+              console.log('  Comparaison userId:', qrUserId, 'vs', currentUserIdNum);
               
-              if (qrUserId !== currentUserId) {
+              if (isNaN(qrUserId) || isNaN(currentUserIdNum)) {
+                console.log('  ⚠️ Impossible de comparer les IDs numériquement');
+                // Si on ne peut pas comparer numériquement, comparer comme chaînes
+                if (qrData.userId !== currentUserId) {
+                  isUserValid = false;
+                  validationMessage = `QR code destiné à l'utilisateur ${qrData.userId}, vous êtes ${currentUserId}`;
+                }
+              } else if (qrUserId !== currentUserIdNum) {
                 isUserValid = false;
-                validationMessage = `QR code destiné à l'utilisateur ${qrUserId}, vous êtes ${currentUserId}`;
+                validationMessage = `QR code destiné à l'utilisateur ${qrUserId}, vous êtes ${currentUserIdNum}`;
               }
             }
           } else if (qrData.type === 'vercel_complete') {
             // Pour le format complet avec employeeId
-            if (qrData.employeeId && currentUser) {
+            if (qrData.employeeId && currentUserId) {
               const qrEmployeeId = parseInt(qrData.employeeId);
-              const currentUserId = parseInt(currentUser.id);
-              console.log('  Comparaison employeeId:', qrEmployeeId, 'vs', currentUserId);
+              const currentUserIdNum = parseInt(currentUserId);
+              console.log('  Comparaison employeeId:', qrEmployeeId, 'vs', currentUserIdNum);
               
-              if (qrEmployeeId !== currentUserId) {
+              if (isNaN(qrEmployeeId) || isNaN(currentUserIdNum)) {
+                console.log('  ⚠️ Impossible de comparer les IDs numériquement');
+                // Si on ne peut pas comparer numériquement, comparer comme chaînes
+                if (qrData.employeeId !== currentUserId) {
+                  isUserValid = false;
+                  validationMessage = `QR code destiné à l'employé ${qrData.employeeId}, vous êtes ${currentUserId}`;
+                }
+              } else if (qrEmployeeId !== currentUserIdNum) {
                 isUserValid = false;
-                validationMessage = `QR code destiné à l'employé ${qrEmployeeId}, vous êtes ${currentUserId}`;
+                validationMessage = `QR code destiné à l'employé ${qrEmployeeId}, vous êtes ${currentUserIdNum}`;
               }
             }
           } else if (qrData.type === 'simple_text' || qrData.type === 'separator') {
@@ -1572,14 +2167,21 @@
             console.log('  Format texte simple - pas de validation utilisateur');
           } else {
             // Pour les formats par défaut, essayer de valider
-            if (qrData.userId && currentUser) {
+            if (qrData.userId && currentUserId) {
               const qrUserId = parseInt(qrData.userId);
-              const currentUserId = parseInt(currentUser.id);
-              console.log('  Comparaison par défaut:', qrUserId, 'vs', currentUserId);
+              const currentUserIdNum = parseInt(currentUserId);
+              console.log('  Comparaison par défaut:', qrUserId, 'vs', currentUserIdNum);
               
-              if (qrUserId !== currentUserId) {
+              if (isNaN(qrUserId) || isNaN(currentUserIdNum)) {
+                console.log('  ⚠️ Impossible de comparer les IDs numériquement');
+                // Si on ne peut pas comparer numériquement, comparer comme chaînes
+                if (qrData.userId !== currentUserId) {
+                  isUserValid = false;
+                  validationMessage = `QR code destiné à l'utilisateur ${qrData.userId}, vous êtes ${currentUserId}`;
+                }
+              } else if (qrUserId !== currentUserIdNum) {
                 isUserValid = false;
-                validationMessage = `QR code destiné à l'utilisateur ${qrUserId}, vous êtes ${currentUserId}`;
+                validationMessage = `QR code destiné à l'utilisateur ${qrUserId}, vous êtes ${currentUserIdNum}`;
               }
             }
           }
@@ -1615,130 +2217,84 @@
       }
     }
 
-    function parseQrCodeContent(qrText) {
-      console.log('🔍 === ANALYSE QR CODE ===');
-      console.log('Contenu brut:', qrText);
-      console.log('Type de données:', typeof qrText);
-      console.log('Longueur:', qrText.length);
-      
+    function parseQrCodeContent(qrData) {
       try {
-        // Parser comme JSON (format principal de l'app Flutter)
-        const jsonData = JSON.parse(qrText);
-        console.log('✅ QR code JSON parsé:', jsonData);
-        console.log('📋 Clés disponibles:', Object.keys(jsonData));
+        console.log('🔍 Parsing QR code:', qrData);
         
-        // Format Vercel exact (userId + userName + planningId + timeSheetTypeId)
-        if (jsonData.userId && jsonData.userName && jsonData.planningId) {
-          console.log('🎯 Format détecté: Vercel (exact)');
-          console.log('  userId:', jsonData.userId);
-          console.log('  userName:', jsonData.userName);
-          console.log('  planningId:', jsonData.planningId);
-          console.log('  timeSheetTypeId:', jsonData.timeSheetTypeId || 1);
+        // Essayer de parser comme JSON
+        let qrJson;
+        try {
+          qrJson = JSON.parse(qrData);
+          console.log('✅ QR code parsé comme JSON:', qrJson);
+        } catch (e) {
+          console.log('❌ QR code n\'est pas un JSON valide:', e);
+          return null;
+        }
+
+        // Vérifier l'expiration (30 secondes)
+        if (qrJson.timestamp) {
+          const qrTimestamp = new Date(qrJson.timestamp);
+          const now = new Date();
+          const difference = (now - qrTimestamp) / 1000; // en secondes
           
-          // Vérifier l'expiration (30 secondes)
-          if (jsonData.timestamp) {
-            const qrTimestamp = new Date(jsonData.timestamp);
-            const now = new Date();
-            const difference = (now - qrTimestamp) / 1000; // en secondes
-            
-            if (difference > 30) {
-              console.log('⏰ QR code expiré:', difference.toFixed(1), 'secondes');
-              return { isValid: false, reason: 'QR code expiré (plus de 30 secondes)' };
-            }
-            
-            console.log('✅ QR code valide:', (30 - difference).toFixed(1), 'secondes restantes');
+          if (difference > 30) {
+            console.log('❌ QR code expiré:', difference, 'secondes');
+            return null;
           }
           
+          console.log('✅ QR code valide:', 30 - difference, 'secondes restantes');
+        }
+
+        // Extraire les données selon le format Vercel exact (comme dans l'app Flutter)
+        if (qrJson.userId && qrJson.userName && qrJson.planningId) {
+          console.log('✅ Format Vercel exact détecté');
           return {
-            isValid: true,
-            userId: jsonData.userId,
-            userName: jsonData.userName,
-            planningId: jsonData.planningId,
-            timeSheetTypeId: jsonData.timeSheetTypeId || 1,
-            timestamp: jsonData.timestamp,
-            location: jsonData.location,
-            type: 'vercel_exact'
+            userId: qrJson.userId,
+            userName: qrJson.userName,
+            planningId: qrJson.planningId,
+            timesheetTypeId: qrJson.timeSheetTypeId || 1,
+            siteId: 1, // Site par défaut
+            siteName: 'test'
           };
         }
-        
-        // Format Vercel complet (site + employé)
-        else if (jsonData.siteId && jsonData.planningId && jsonData.timesheetTypeId) {
-          console.log('🎯 Format détecté: Vercel (complet)');
+        // Format Vercel complet
+        else if (qrJson.siteId && qrJson.planningId && qrJson.timesheetTypeId) {
+          console.log('✅ Format Vercel complet détecté');
           return {
-            isValid: true,
-            siteId: jsonData.siteId,
-            planningId: jsonData.planningId,
-            timesheetTypeId: jsonData.timesheetTypeId,
-            siteName: jsonData.siteName || 'Site inconnu',
-            employeeId: jsonData.employeeId,
-            location: jsonData.location,
-            type: 'vercel_complete'
+            userId: qrJson.employeeId,
+            userName: qrJson.userName || '',
+            planningId: qrJson.planningId,
+            timesheetTypeId: qrJson.timesheetTypeId,
+            siteId: qrJson.siteId,
+            siteName: qrJson.siteName || 'Site inconnu'
           };
         }
-        
-        // Format raccourci (uid + pid)
-        else if (jsonData.uid && jsonData.pid) {
-          console.log('🎯 Format détecté: raccourci');
+        // Format raccourci
+        else if (qrJson.uid && qrJson.pid) {
+          console.log('✅ Format raccourci détecté');
           return {
-            isValid: true,
-            userId: jsonData.uid,
-            planningId: jsonData.pid,
-            timeSheetTypeId: 1,
-            type: 'shortcut'
+            userId: qrJson.uid,
+            userName: qrJson.un || '',
+            planningId: qrJson.pid,
+            timesheetTypeId: 1,
+            siteId: 1,
+            siteName: 'Site par défaut'
           };
         }
-        
-        // Format inconnu - essayer avec des valeurs par défaut
         else {
-          console.log('⚠️ Format non reconnu, utilisation des valeurs par défaut');
-          console.log('QR JSON reçu:', jsonData);
-          console.log('Clés disponibles:', Object.keys(jsonData));
-          
+          console.log('❌ Format non reconnu, utilisation des valeurs par défaut');
           return {
-            isValid: true,
-            userId: jsonData.userId || jsonData.employeeId || 202,
-            planningId: jsonData.planningId || 5,
-            timeSheetTypeId: jsonData.timeSheetTypeId || 1,
-            location: jsonData.location,
-            type: 'default'
+            userId: 1,
+            userName: 'Utilisateur par défaut',
+            planningId: 1,
+            timesheetTypeId: 1,
+            siteId: 1,
+            siteName: 'Site par défaut'
           };
         }
-        
-      } catch (e) {
-        console.log('❌ Erreur parsing JSON:', e.message);
-        console.log('📝 Tentative d\'analyse comme texte simple...');
-        
-        // Analyser comme texte simple
-        const text = qrText.toLowerCase();
-        
-        // Format simple: "IN" ou "OUT"
-        if (text === 'in' || text === 'out') {
-          console.log('🎯 Format détecté: texte simple');
-          return {
-            isValid: true,
-            action: text,
-            type: 'simple_text'
-          };
-        }
-        
-        // Format avec séparateur: "PUNCH:IN" ou "PUNCH:OUT"
-        if (text.includes(':')) {
-          const parts = text.split(':');
-          if (parts[0] === 'punch' && (parts[1] === 'in' || parts[1] === 'out')) {
-            console.log('🎯 Format détecté: séparateur');
-            return {
-              isValid: true,
-              action: parts[1],
-              type: 'separator'
-            };
-          }
-        }
-        
-        return { 
-          isValid: false, 
-          reason: 'Format non reconnu - JSON invalide et texte non reconnu',
-          rawData: qrText
-        };
+      } catch (error) {
+        console.error('❌ Erreur parsing QR code:', error);
+        return null;
       }
     }
 
@@ -1762,13 +2318,22 @@
           return;
         }
 
+        // Obtenir les informations complètes de l'utilisateur
+        const userInfo = getUserCompleteInfo(user);
+        console.log('🔍 Informations complètes pour timesheet:', userInfo);
+        
+        if (!userInfo) {
+          showNotification('❌ Informations utilisateur incomplètes', 'error');
+          return;
+        }
+
         // Générer un code unique (comme dans l'app Flutter)
         const uniqueCode = generateUniqueCode();
         
         // Déterminer les paramètres selon le type de QR code
         let planningId = 5; // Valeur par défaut
         let timesheetTypeId = 1; // Valeur par défaut
-        let userName = user.displayName || user.name || 'Utilisateur';
+        let userName = userInfo.fullName || user.displayName || user.name || 'Utilisateur';
         
         console.log('🔍 Analyse du type de QR code:', qrData.type);
         
@@ -1804,14 +2369,19 @@
             console.log('  Format par défaut - planningId:', planningId, 'timesheetTypeId:', timesheetTypeId);
         }
         
-        // Créer les détails JSON (format raccourci comme dans l'app Flutter)
+        // Créer les détails JSON avec informations complètes (format raccourci comme dans l'app Flutter)
         const details = {
-          'uid': user.id, // ID de l'employé réel
+          'uid': userInfo.id || userInfo.employeeId || userInfo.userId, // ID de l'employé réel
           'un': userName,
           'pid': planningId,
           'ts': Date.now(),
           'lat': 0.0, // Position GPS (à implémenter si nécessaire)
           'lng': 0.0,
+          // Informations complètes pour le tri
+          'matricule': userInfo.matricule,
+          'email': userInfo.email,
+          'fullName': userInfo.fullName,
+          'phone': userInfo.phone
         };
 
         const detailsJson = JSON.stringify(details);
@@ -1938,6 +2508,307 @@
       }
     `;
     document.head.appendChild(style);
+
+    // Fonction pour forcer le rechargement de l'utilisateur
+    async function reloadUserData() {
+      try {
+        console.log('🔄 Rechargement forcé des données utilisateur...');
+        await authManager.loadCurrentUser();
+        console.log('✅ Données utilisateur rechargées:', authManager.user);
+        
+        // Recharger l'interface
+        await initializeDashboard();
+        
+        alert('Données utilisateur rechargées avec succès !');
+      } catch (error) {
+        console.error('❌ Erreur lors du rechargement:', error);
+        alert('Erreur lors du rechargement des données utilisateur');
+      }
+    }
+
+    // Fonction pour tester différents identifiants
+    async function testAllCredentials() {
+      const credentials = [
+        { email: "Test@test.com", password: "test123" },
+        { email: "toto.mulumba@gmail.com", password: "password123" },
+        { email: "admin@test.com", password: "admin123" },
+        { email: "user@test.com", password: "user123" }
+      ];
+
+      console.log('🧪 Test de tous les identifiants possibles...');
+      
+      for (let i = 0; i < credentials.length; i++) {
+        const cred = credentials[i];
+        console.log(`\n🔍 Test ${i + 1}: ${cred.email}`);
+        
+        try {
+          const response = await fetch(`${API_BASE_URL}/Auth/login`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(cred)
+          });
+
+          console.log(`📡 Réponse pour ${cred.email}:`, response.status, response.statusText);
+          
+          if (response.ok) {
+            const data = await response.json();
+            console.log(`✅ SUCCÈS avec ${cred.email}:`, data);
+            return { success: true, credentials: cred, data: data };
+          } else {
+            const errorText = await response.text();
+            console.log(`❌ ÉCHEC avec ${cred.email}:`, errorText);
+          }
+        } catch (error) {
+          console.log(`❌ ERREUR avec ${cred.email}:`, error.message);
+        }
+      }
+      
+      console.log('\n❌ Aucun identifiant valide trouvé');
+      return { success: false };
+    }
+
+    // Fonction pour tester l'API sans authentification
+    async function testPublicEndpoints() {
+      console.log('🔍 Test des endpoints publics...');
+      
+      const endpoints = [
+        '/Auth/users/1',
+        '/Site',
+        '/TimesheetType/GetByParentId/1'
+      ];
+      
+      for (const endpoint of endpoints) {
+        try {
+          const response = await fetch(`${API_BASE_URL}${endpoint}`);
+          console.log(`📡 ${endpoint}:`, response.status, response.statusText);
+          
+          if (response.ok) {
+            const data = await response.json();
+            console.log(`✅ ${endpoint} - Données:`, data);
+          } else {
+            const errorText = await response.text();
+            console.log(`❌ ${endpoint} - Erreur:`, errorText);
+          }
+        } catch (error) {
+          console.log(`❌ ${endpoint} - Exception:`, error.message);
+        }
+      }
+    }
+
+    // Fonction pour forcer la connexion avec des données complètes
+    function forceLoginWithCompleteData() {
+      console.log('🔧 Forçage de la connexion avec données complètes...');
+      
+      // Définir des données utilisateur complètes
+      const completeUser = {
+        id: 97,
+        employeeId: 97,
+        userId: 97,
+        email: "toto.mulumba@gmail.com",
+        username: "toto.mulumba@gmail.com",
+        displayName: "mulumba kabeya toto",
+        userName: "toto.mulumba@gmail.com",
+        fullName: "mulumba kabeya toto",
+        matricule: "060720240080",
+        phone: "+243000000000",
+        department: "Informatique",
+        employee: {
+          id: 97,
+          matricule: "060720240080",
+          firstName: "mulumba",
+          lastName: "kabeya toto",
+          personalPhone: "+243000000000",
+          personalEmail: "toto.mulumba@gmail.com",
+          fullName: "mulumba kabeya toto"
+        }
+      };
+      
+      // Définir un token factice pour les tests
+      const fakeToken = "fake-token-for-testing";
+      
+      // Mettre à jour l'authManager
+      authManager.user = completeUser;
+      authManager.token = fakeToken;
+      
+      // Sauvegarder dans localStorage
+      localStorage.setItem('user', JSON.stringify(completeUser));
+      localStorage.setItem('token', fakeToken);
+      
+      console.log('✅ Données utilisateur forcées:', completeUser);
+      
+      // Recharger la page pour appliquer les changements
+      alert('Données utilisateur forcées. La page va se recharger.');
+      window.location.reload();
+    }
+
+    // Fonction pour tester les APIs avec un token factice
+    async function testAPIsWithFakeToken() {
+      console.log('🧪 Test des APIs avec token factice...');
+      
+      const endpoints = [
+        '/Auth/users/1',
+        '/Site',
+        '/TimesheetType/GetByParentId/1',
+        '/Timesheet/DailyResume/UserId/97',
+        '/Timesheet/Resume/UserId/97/scope/1'
+      ];
+      
+      for (const endpoint of endpoints) {
+        try {
+          const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            headers: {
+              'Authorization': 'Bearer fake-token-for-testing',
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          console.log(`📡 ${endpoint}:`, response.status, response.statusText);
+          
+          if (response.ok) {
+            const data = await response.json();
+            console.log(`✅ ${endpoint} - Données:`, data);
+          } else {
+            const errorText = await response.text();
+            console.log(`❌ ${endpoint} - Erreur:`, errorText);
+          }
+        } catch (error) {
+          console.log(`❌ ${endpoint} - Exception:`, error.message);
+        }
+      }
+    }
+
+    // Fonction pour rechercher un utilisateur par numéro de téléphone
+    async function searchUserByPhone(phoneNumber) {
+      try {
+        console.log('🔍 Recherche utilisateur par téléphone:', phoneNumber);
+        
+        // Essayer différents formats du numéro
+        const phoneFormats = [
+          phoneNumber,
+          phoneNumber.replace('+243', '0'),
+          phoneNumber.replace('0', '+243'),
+          phoneNumber.replace('+243', ''),
+          phoneNumber.replace('0', '243')
+        ];
+        
+        console.log('📱 Formats de numéro à tester:', phoneFormats);
+        
+        // Récupérer la liste des utilisateurs
+        const response = await fetch(`${API_BASE_URL}/Auth/users/1`, {
+          headers: {
+            'Authorization': `Bearer ${authManager.token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          const users = await response.json();
+          console.log('📊 Liste des utilisateurs reçue:', users);
+          
+          // Rechercher dans la liste
+          let foundUser = null;
+          
+          if (Array.isArray(users)) {
+            for (const user of users) {
+              // Vérifier le téléphone de l'utilisateur
+              const userPhone = user.phone || user.personalPhone || user.employee?.personalPhone;
+              
+              if (userPhone) {
+                // Vérifier tous les formats
+                for (const format of phoneFormats) {
+                  if (userPhone.includes(format) || format.includes(userPhone)) {
+                    foundUser = user;
+                    console.log('✅ Utilisateur trouvé:', user);
+                    break;
+                  }
+                }
+              }
+              
+              if (foundUser) break;
+            }
+          }
+          
+          if (foundUser) {
+            const result = {
+              id: foundUser.id,
+              name: foundUser.displayName || foundUser.userName || foundUser.employee?.fullName,
+              phone: foundUser.phone || foundUser.personalPhone || foundUser.employee?.personalPhone,
+              email: foundUser.email || foundUser.personalEmail || foundUser.employee?.personalEmail,
+              matricule: foundUser.matricule || foundUser.employee?.matricule
+            };
+            
+            console.log('✅ Résultat de la recherche:', result);
+            return result;
+          } else {
+            console.log('❌ Aucun utilisateur trouvé avec ce numéro');
+            return null;
+          }
+        } else {
+          console.error('❌ Erreur lors de la récupération des utilisateurs:', response.status);
+          return null;
+        }
+      } catch (error) {
+        console.error('❌ Erreur lors de la recherche:', error);
+        return null;
+      }
+    }
+
+    // Fonction pour afficher le résultat de recherche
+    function displaySearchResult(result) {
+      if (result) {
+        alert(`✅ Utilisateur trouvé:\n\nNom: ${result.name}\nTéléphone: ${result.phone}\nEmail: ${result.email}\nMatricule: ${result.matricule || 'N/A'}`);
+      } else {
+        alert('❌ Aucun utilisateur trouvé avec ce numéro de téléphone');
+      }
+    }
+
+    // ... existing code ...
+
+    // Ajouter les boutons de test dans le profil
+    document.addEventListener('DOMContentLoaded', function() {
+      // ... existing code ...
+      
+      // Ajouter les boutons de test dans la section profil
+      const profileSection = document.querySelector('#profile-content');
+      if (profileSection) {
+        const testButtons = document.createElement('div');
+        testButtons.innerHTML = `
+          <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+            <h4>🔧 Outils de diagnostic</h4>
+            <button class="btn btn-warning" onclick="testAllCredentials()" style="margin: 5px;">🧪 Tester Tous Identifiants</button>
+            <button class="btn btn-info" onclick="testPublicEndpoints()" style="margin: 5px;">🔍 Tester Endpoints Publics</button>
+            <button class="btn btn-success" onclick="setCompleteUserData()" style="margin: 5px;">🔧 Définir Données Complètes</button>
+            <button class="btn btn-secondary" onclick="testLoginAPI()" style="margin: 5px;">🧪 Tester API Login</button>
+            <button class="btn btn-danger" onclick="forceLoginWithCompleteData()" style="margin: 5px;">🚀 Forcer Connexion Complète</button>
+            <button class="btn btn-dark" onclick="testAPIsWithFakeToken()" style="margin: 5px;">🔍 Tester APIs avec Token Factice</button>
+            <hr>
+            <h5>📱 Recherche utilisateur</h5>
+            <input type="text" id="phone-search" placeholder="Numéro de téléphone" style="margin: 5px; padding: 5px; width: 200px;">
+            <button class="btn btn-primary" onclick="searchPhone()" style="margin: 5px;">🔍 Rechercher</button>
+          </div>
+        `;
+        profileSection.appendChild(testButtons);
+      }
+    });
+
+    // Fonction pour rechercher un numéro de téléphone
+    async function searchPhone() {
+      const phoneInput = document.getElementById('phone-search');
+      const phoneNumber = phoneInput.value.trim();
+      
+      if (!phoneNumber) {
+        alert('Veuillez entrer un numéro de téléphone');
+        return;
+      }
+      
+      console.log('🔍 Recherche du numéro:', phoneNumber);
+      const result = await searchUserByPhone(phoneNumber);
+      displaySearchResult(result);
+    }
+
+    // ... existing code ...
   </script>
 </body>
 </html>

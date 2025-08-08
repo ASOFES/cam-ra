@@ -8,10 +8,11 @@ import http.server
 import socketserver
 import webbrowser
 import os
+import sys
 from urllib.parse import urlparse
 
 # Configuration
-HOST = '192.168.11.105'  # Adresse IP de votre ordinateur
+HOST = '0.0.0.0'  # Écouter sur toutes les interfaces
 PORT = 8000
 
 class CORSRequestHandler(http.server.SimpleHTTPRequestHandler):
@@ -27,25 +28,41 @@ class CORSRequestHandler(http.server.SimpleHTTPRequestHandler):
         self.send_response(200)
         self.end_headers()
 
+def get_local_ip():
+    """Obtenir l'adresse IP locale"""
+    import socket
+    try:
+        # Se connecter à un serveur externe pour obtenir l'IP locale
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        local_ip = s.getsockname()[0]
+        s.close()
+        return local_ip
+    except:
+        return "localhost"
+
 def main():
+    # Obtenir l'adresse IP locale
+    local_ip = get_local_ip()
+    
     # Créer le serveur avec l'adresse IP spécifique
     with socketserver.TCPServer((HOST, PORT), CORSRequestHandler) as httpd:
-        print(f"🚀 Serveur démarré sur http://{HOST}:{PORT}")
+        print(f"🚀 Serveur démarré sur http://{local_ip}:{PORT}")
         print(f"📱 Accessible depuis votre téléphone sur le même réseau WiFi")
         print(f"🌐 Ouvrez votre navigateur sur le téléphone et allez à:")
-        print(f"   http://{HOST}:{PORT}")
+        print(f"   http://{local_ip}:{PORT}")
         print(f"📋 Ou scannez ce QR code avec votre téléphone:")
-        print(f"   http://{HOST}:{PORT}")
+        print(f"   http://{local_ip}:{PORT}")
         print("\n" + "="*50)
         print("📱 POUR TESTER SUR TÉLÉPHONE:")
         print("1. Assurez-vous que votre téléphone est sur le même WiFi")
         print("2. Ouvrez le navigateur sur votre téléphone")
-        print("3. Allez à: http://192.168.11.105:8000")
+        print(f"3. Allez à: http://{local_ip}:{PORT}")
         print("4. Testez la connexion et le scanner QR!")
         print("="*50 + "\n")
         
         # Ouvrir le navigateur sur l'ordinateur
-        webbrowser.open(f'http://{HOST}:{PORT}')
+        webbrowser.open(f'http://localhost:{PORT}')
         
         try:
             httpd.serve_forever()

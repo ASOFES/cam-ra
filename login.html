@@ -493,6 +493,86 @@
 
     const authManager = new AuthManager();
 
+    // Identifiants de test (comme dans l'app Flutter)
+    const TEST_EMAIL = 'Test@test.com';
+    const TEST_PASSWORD = 'test123';
+
+    // Fonction de connexion
+    async function performLogin() {
+      const email = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      const loadingSpinner = document.getElementById('loading');
+      const loginButton = document.getElementById('loginBtn');
+
+      if (!email || !password) {
+        showError('Veuillez remplir tous les champs');
+        return;
+      }
+
+      try {
+        // Afficher le spinner
+        loadingSpinner.style.display = 'block';
+        loginButton.disabled = true;
+
+        console.log('🔐 Tentative de connexion avec:', email);
+
+        const response = await fetch(`${API_BASE_URL}/Auth/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: email,
+            password: password
+          })
+        });
+
+        console.log('📡 Réponse HTTP:', response.status, response.statusText);
+
+        if (!response.ok) {
+          const errorData = await response.text();
+          console.error('❌ Erreur de connexion:', errorData);
+          
+          if (response.status === 401) {
+            showError('Identifiants incorrects. Vérifiez votre email et mot de passe.');
+          } else {
+            showError(`Erreur de connexion: ${response.status} - ${errorData}`);
+          }
+          return;
+        }
+
+        const data = await response.json();
+        console.log('✅ Connexion réussie:', data);
+
+        // Sauvegarder le token
+        localStorage.setItem('token', data.token);
+        
+        // Créer et sauvegarder les données utilisateur de base
+        const userData = {
+          id: data.id || 2,
+          userName: data.userName || email,
+          email: email,
+          username: email,
+          displayName: data.userName || email,
+          employeeId: data.id || 2,
+          userId: data.id || 2
+        };
+        
+        localStorage.setItem('user', JSON.stringify(userData));
+        
+        // Rediriger vers le dashboard
+        window.location.href = 'dashboard.html';
+
+      } catch (error) {
+        console.error('❌ Erreur de connexion:', error);
+        showError('Erreur de connexion: ' + error.message);
+      } finally {
+        // Masquer le spinner
+        loadingSpinner.style.display = 'none';
+        loginButton.disabled = false;
+      }
+    }
+
     // Gestion du formulaire de connexion
     document.getElementById('loginForm').addEventListener('submit', async function(e) {
       e.preventDefault();
@@ -577,6 +657,12 @@
       input.addEventListener('blur', function() {
         this.parentElement.style.transform = 'scale(1)';
       });
+    });
+
+    // Pré-remplir avec les identifiants de test
+    document.addEventListener('DOMContentLoaded', function() {
+      document.getElementById('username').value = TEST_EMAIL;
+      document.getElementById('password').value = TEST_PASSWORD;
     });
   </script>
 </body>
