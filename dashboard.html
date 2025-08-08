@@ -549,6 +549,9 @@
         <button class="punch-btn" id="scanQrBtn" onclick="openQrScanner()" style="background: rgba(255, 255, 255, 0.3); border-color: rgba(255, 255, 255, 0.5);">
           📱 Scanner QR Code
         </button>
+        <button class="punch-btn" onclick="verifierStatutPointage()" style="background: rgba(59, 130, 246, 0.3); border-color: rgba(59, 130, 246, 0.5);">
+          🔍 Vérifier Statut
+        </button>
         <div class="loading" id="punchLoading" style="display: none;">
           <div class="spinner"></div>
           <p>Pointage en cours...</p>
@@ -785,14 +788,19 @@
         try {
           // Récupérer l'ID de l'utilisateur connecté
           const user = this.authManager.getUser();
-          const userId = user?.id || user?.employeeId || user?.userId;
+          console.log('🔍 getCurrentStatus - Utilisateur récupéré:', user);
+          
+          // Essayer différentes propriétés pour l'ID utilisateur
+          const userId = user?.id || user?.employeeId || user?.userId || user?.EmployeeId || user?.UserId;
+          
+          console.log('🔍 getCurrentStatus - ID utilisateur trouvé:', userId);
           
           if (!userId) {
-            console.error('Aucun ID utilisateur trouvé pour le statut');
-            return { status: 'out', lastPunch: null };
+            console.error('❌ getCurrentStatus - Aucun ID utilisateur trouvé dans:', user);
+            return { status: 'out', lastPunch: null, error: 'Utilisateur non identifié' };
           }
 
-          console.log('Récupération statut pour utilisateur ID:', userId);
+          console.log('📊 Récupération statut pour utilisateur ID:', userId);
           
           const response = await fetch(`${API_BASE_URL}/Punch/current-status/${userId}`, {
             headers: {
@@ -801,20 +809,42 @@
             }
           });
 
-          console.log('Réponse API statut:', response.status, response.statusText);
+          console.log('📊 Réponse API statut:', response.status, response.statusText);
 
           if (!response.ok) {
             const errorText = await response.text();
-            console.error('Erreur API statut:', errorText);
-            return { status: 'out', lastPunch: null };
+            console.error('❌ Erreur API statut:', errorText);
+            return { 
+              status: 'out', 
+              lastPunch: null, 
+              error: `Erreur HTTP: ${response.status} - ${errorText}`,
+              userId: userId 
+            };
           }
 
           const data = await response.json();
-          console.log('Données statut reçues:', data);
-          return data;
+          console.log('✅ Données statut reçues:', data);
+          
+          // Ajouter des informations supplémentaires
+          const enhancedData = {
+            ...data,
+            userId: userId,
+            checkTime: new Date().toISOString(),
+            userInfo: {
+              name: user?.name || user?.username || 'Inconnu',
+              email: user?.email || 'N/A'
+            }
+          };
+          
+          return enhancedData;
         } catch (error) {
-          console.error('Erreur récupération statut:', error);
-          return { status: 'out', lastPunch: null };
+          console.error('❌ Erreur récupération statut:', error);
+          return { 
+            status: 'out', 
+            lastPunch: null, 
+            error: error.message,
+            userId: user?.id || user?.employeeId || user?.userId 
+          };
         }
       }
 
@@ -1076,6 +1106,87 @@
         second: '2-digit'
       });
       document.getElementById('currentTime').textContent = timeString;
+    }
+
+    async function verifierStatutPointage() {
+      try {
+        console.log('🔍 Vérification du statut de pointage actuel...');
+        
+        // Récupérer l'utilisateur connecté
+        const user = authManager.getUser();
+        console.log('👤 Utilisateur connecté:', user);
+        
+        if (!user) {
+          console.error('❌ Aucun utilisateur connecté');
+          showNotification('❌ Aucun utilisateur connecté', 'error');
+          return;
+        }
+
+        // Récupérer le statut actuel via l'API
+        const statusData = await punchManager.getCurrentStatus();
+        console.log('📊 Données de statut reçues:', statusData);
+        
+        // Afficher les détails du statut
+        let statusMessage = '';
+        let statusClass = '';
+        let detailsMessage = '';
+        
+        if (statusData && statusData.status) {
+          if (statusData.status === 'in') {
+            statusMessage = `🟢 EN SERVICE`;
+            statusClass = 'status-in';
+            detailsMessage = `Dernier pointage: ${statusData.lastPunchTime || statusData.lastPunch || 'N/A'}`;
+          } else {
+            statusMessage = `🔴 HORS SERVICE`;
+            statusClass = 'status-out';
+            detailsMessage = `Dernier pointage: ${statusData.lastPunchTime || statusData.lastPunch || 'N/A'}`;
+          }
+        } else {
+          statusMessage = '⚪ AUCUN POINTAGE';
+          statusClass = 'status-out';
+          detailsMessage = 'Aucun pointage trouvé aujourd\'hui';
+        }
+        
+        // Ajouter des informations de debug si disponibles
+        if (statusData.error) {
+          detailsMessage += ` | Erreur: ${statusData.error}`;
+        }
+        if (statusData.userId) {
+          detailsMessage += ` | UserID: ${statusData.userId}`;
+        }
+        if (statusData.userInfo) {
+          detailsMessage += ` | Utilisateur: ${statusData.userInfo.name}`;
+        }
+        
+        // Mettre à jour l'affichage
+        const statusElement = document.getElementById('punchStatus');
+        statusElement.innerHTML = `
+          <div style="font-weight: bold; margin-bottom: 5px;">${statusMessage}</div>
+          <div style="font-size: 12px; opacity: 0.8;">${detailsMessage}</div>
+        `;
+        statusElement.className = `status-indicator ${statusClass}`;
+        
+        // Mettre à jour les boutons
+        const punchInBtn = document.getElementById('punchInBtn');
+        const punchOutBtn = document.getElementById('punchOutBtn');
+        
+        if (statusData && statusData.status === 'in') {
+          punchInBtn.disabled = true;
+          punchOutBtn.disabled = false;
+        } else {
+          punchInBtn.disabled = false;
+          punchOutBtn.disabled = true;
+        }
+        
+        // Afficher une notification avec les détails
+        showNotification(`Statut vérifié: ${statusMessage} - ${detailsMessage}`, 'success');
+        
+        console.log('✅ Statut de pointage vérifié avec succès');
+        
+      } catch (error) {
+        console.error('❌ Erreur lors de la vérification du statut:', error);
+        showNotification('❌ Erreur lors de la vérification du statut', 'error');
+      }
     }
 
     function mettreAJourStatutPointage() {
